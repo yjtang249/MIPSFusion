@@ -4,7 +4,7 @@
 Comming soon
 
 ## Intro
-<img>
+<img src="fig/1.png" alt="drawing" width="700"/>
 
 ## Run
 ```
