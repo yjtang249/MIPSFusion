@@ -1,0 +1,30 @@
+inherit_from: configs/FastCaMo-large/FastCaMo-large.yaml
+
+mapping:
+  bound: [[-6.7, 2.75], [-4.1, 6.0], [-1.55, 14.1]]
+  marching_cubes_bound: [[-6.7, 2.75], [-4.1, 6.0], [-1.55, 14.1]]
+  sample: 1800
+  pixels_cur: 500
+  first_mesh: True
+  iters: 15
+  lr_embed: 0.01  # default: 0.01
+  lr_decoder: 0.01  # default: 0.01
+  lr_rot: 0.001  # default: 0.001
+  lr_trans: 0.001  # default: 0.001
+  keyframe_every: 15  # insert keyframe at constant speed
+  min_containing_ratio: 0.75
+  min_containing_ratio_mo: 0.8
+  min_containing_ratio_back: 0.75
+  min_cr_localMLP_len: [ 5., 5., 5. ]
+  localMLP_max_len: [ 7., 7., 5. ]
+  localMLP_max_len_back: [ 7., 7., 5. ]
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/stairs2
+  trainskip: 1
+  output: output/FastCaMo-large/stairs1
+  exp_name: "0"
+  starting_frame: -1

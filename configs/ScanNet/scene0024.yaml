@@ -1,0 +1,28 @@
+inherit_from: configs/ScanNet/scannet.yaml
+mapping:
+  bound: [ [ -0.5, 6.5 ],[ 0.0, 9.0 ],[ -0.5, 3.0 ] ]
+  marching_cubes_bound: [ [ -0.5, 6.5 ],[ 0.0, 9.0 ],[ -0.5, 3.0 ] ]
+
+  iters: 10
+  keyframe_every: 30
+  localMLP_max_len: [ 7., 7., 4. ]
+  map_every: 3
+  pose_accum_step: 2
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0024_00/output
+  trainskip: 1
+  output: output/scannet/scene0024_00
+  exp_name: "0"
+  starting_frame: 0
+
+tracking:
+  iter_RO: 0  # iter num for RO
+  iter: 10  # iter num for GO
+
+cam:
+  near: 0
+  far: 7.

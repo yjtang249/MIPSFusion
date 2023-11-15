@@ -1,0 +1,35 @@
+inherit_from: configs/TUM_RGBD2/tum_rgbd.yaml
+
+mapping:
+  bound: [[-0.5, 8.0],[-3.5, 3.0],[-0.3, 3.0]]
+  marching_cubes_bound: [[-0.5, 8.0],[-3.5, 3.0],[-0.3, 3.0]]
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/rainbow7/Dataset/TUM_RGBD/fr2_xyz
+#  datadir: /media/javens/rainbow7/Dataset/TUM_RGBD_torch/fr1_desk
+  trainskip: 1
+  output: output/TUM_RGBD/fr2_xyz_sc
+  exp_name: "0"
+  starting_frame: -1
+
+tracking:
+  iter_RO: 5  # iter num for RO
+  iter: 10  # iter num for GO
+
+cam:  #intrinsic is different per scene in TUM
+  H: 480
+  W: 640
+  fx: 520.9
+  fy: 521.0
+  cx: 325.1
+  cy: 249.7
+  crop_edge: 8
+  crop_size: [ 384,512 ]
+  distortion: [ 0.2312, -0.7849, -0.0033, -0.0001, 0.9172 ]
+  near: 0
+  far: 6
+  depth_trunc: 5.
+

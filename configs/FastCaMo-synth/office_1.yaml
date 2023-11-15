@@ -1,0 +1,17 @@
+inherit_from: configs/FastCaMo-synth/FastCaMo-synth.yaml
+
+mapping:
+  bound: [[-1.6, 11.7], [-1.9, 4.7], [-1.5, 2.1]]
+  marching_cubes_bound: [[-1.6, 11.7], [-1.9, 4.7], [-1.5, 2.1]]
+
+grid:
+  hash_size: 16 # 1.59M
+  
+
+data:
+  #  datadir: ./data/scannet/scene0000_00  # input dir of this sequence
+  datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/office_1
+  trainskip: 1
+  output: output/FastCaMo-synth/office_1
+  exp_name: "0"
+  starting_frame: -1

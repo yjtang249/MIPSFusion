@@ -1,0 +1,26 @@
+inherit_from: configs/FastCaMo-large/FastCaMo-large.yaml
+
+mapping:
+  bound: [[-3.5, 27.0], [-18.0, 4.0], [-5.0, 5.0]]
+  marching_cubes_bound: [[-3.5, 27.0], [-18.0, 4.0], [-5.0, 5.0]]
+  sample: 1800
+  pixels_cur: 600
+  localMLP_num: 20
+  iters: 10
+  keyframe_every: 30  # insert keyframe at constant speed
+  map_every: 3
+  pose_accum_step: 2
+
+tracking:
+  switch:
+    min_correspondence: 15000
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/restaurant1
+  trainskip: 1
+  output: output/FastCaMo-large/restaurant1
+  exp_name: "0"
+  starting_frame: -1

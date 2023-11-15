@@ -1,0 +1,22 @@
+inherit_from: configs/ScanNet/scannet.yaml
+mapping:
+  bound: [[-0.3, 9.6],[-0.3, 9.4],[-0.3, 3.5]]
+  marching_cubes_bound: [[-0.3, 9.6],[-0.3, 9.4],[-0.3, 3.5]]
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0106_00/output
+  trainskip: 1
+  output: output/scannet/scene0106_00
+  exp_name: "0"
+  starting_frame: -1
+
+tracking:
+  iter_RO: 0  # iter num for RO
+  iter: 10  # iter num for GO
+
+cam:
+  near: 0
+  far: 5.0

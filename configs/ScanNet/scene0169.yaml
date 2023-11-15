@@ -1,0 +1,38 @@
+inherit_from: configs/ScanNet/scannet.yaml
+mapping:
+  bound: [ [ 0.5, 9.1 ],[ -0.3, 7.8 ],[ -0.3, 2.7 ] ]
+  marching_cubes_bound: [ [ 0.5, 9.1 ],[ -0.3, 7.8 ],[ -0.3, 2.7 ] ]
+  keyframe_every: 15  # insert keyframe at constant speed, default: 15
+
+grid:
+  hash_size: 16
+
+data:
+  datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0169_00/output
+  trainskip: 1
+  output: output/scannet/scene0169_00
+  exp_name: "0"
+  starting_frame: 0
+
+tracking:
+  iter_RO: 0  # iter num for RO
+  iter: 10  # iter num for GO
+
+cam:
+  H: 480
+  W: 640
+  fx: 574.540771
+  fy: 577.583740
+  cx: 322.522827
+  cy: 238.558853
+  near: 0
+  far: 7.
+
+training:
+  rgb_weight: 1.
+  depth_weight: 0.
+  sdf_weight: 1000
+  fs_weight: 10
+  n_samples_d: 50  # number of depth value sampled uniformly along a ray
+  range_d: 0.20
+  n_range_d: 25  # number of depth value sampled around surface along a ray

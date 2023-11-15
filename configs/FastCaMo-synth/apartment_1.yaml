@@ -1,0 +1,21 @@
+inherit_from: configs/FastCaMo-synth/FastCaMo-synth.yaml
+
+mapping:
+  bound: [[-2.4, 3.85], [-2.1, 5.9], [-6.45, 2.5]]
+  marching_cubes_bound: [[-2.4, 3.85], [-2.1, 5.9], [-6.45, 2.5]]
+  localMLP_max_len: [ 7., 7., 7. ]
+  localMLP_max_len_back: [ 7., 7., 7. ]
+
+grid:
+  hash_size: 16
+
+cam:
+  near: 0
+  far: 5
+
+data:
+  datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/apartment_1
+  trainskip: 1
+  output: output/FastCaMo-synth/apartment_1
+  exp_name: "0"
+  starting_frame: -1

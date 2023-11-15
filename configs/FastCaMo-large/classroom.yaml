@@ -1,0 +1,25 @@
+inherit_from: configs/FastCaMo-large/FastCaMo-large.yaml
+
+mapping:
+  bound: [[-1.4, 10.1], [-2.8, 10.5], [-1.45, 6.15]]
+  marching_cubes_bound: [[-1.4, 10.1], [-2.8, 10.5], [-1.45, 6.15]]
+  sample: 2000
+  pixels_cur: 500
+  iters: 10
+  keyframe_every: 15
+  map_every: 3
+
+data:
+  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/classroom_lp_f
+  trainskip: 1
+  output: output/FastCaMo-large/classroom
+  exp_name: "0"
+  starting_frame: -1
+
+mesh:
+  resolution: 512
+  vis: 100
+  ckpt_freq: 250
+  voxel_eval: 0.05
+  voxel_final: 0.03
+  visualisation: False
