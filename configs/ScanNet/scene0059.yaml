@@ -11,8 +11,8 @@ mapping:
   map_every: 2
 
 tracking:
-  iter_RO: 0  # iter num for RO
-  iter: 10  # iter num for GO
+  iter_RO: 0
+  iter: 10
 
 grid:
   hash_size: 16

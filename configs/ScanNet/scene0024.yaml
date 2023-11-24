@@ -20,8 +20,8 @@ data:
   starting_frame: 0
 
 tracking:
-  iter_RO: 0  # iter num for RO
-  iter: 10  # iter num for GO
+  iter_RO: 0
+  iter: 10
 
 cam:
   near: 0

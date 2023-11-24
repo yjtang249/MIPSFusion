@@ -4,9 +4,8 @@ import torch
 import torch.nn as nn
 
 from .encodings import get_encoder
-from .decoder import MLP_reg, MLP_reg2
-from .decoder_co import ColorSDFNet_v2
-from helper_functions.utils import sample_pdf, batchify, get_sdf_loss, get_sdf_loss2, mse2psnr, compute_loss
+from .decoder import MLP_reg
+from helper_functions.utils import batchify, get_sdf_loss, mse2psnr, compute_loss
 
 
 class JointEncoding(nn.Module):
@@ -26,12 +25,12 @@ class JointEncoding(nn.Module):
         dim_max = (self.bounding_box[:, 1] - self.bounding_box[:, 0]).max()
         if self.config['grid']['voxel_sdf'] > 10:
             self.resolution_sdf = self.config['grid']['voxel_sdf']
-        else:  # default (225)
+        else:
             self.resolution_sdf = int(dim_max / self.config['grid']['voxel_sdf'])
         
         if self.config['grid']['voxel_color'] > 10:
             self.resolution_color = self.config['grid']['voxel_color']
-        else:  # default (112)
+        else:
             self.resolution_color = int(dim_max / self.config['grid']['voxel_color'])
         
         print('SDF resolution:', self.resolution_sdf)
@@ -43,18 +42,12 @@ class JointEncoding(nn.Module):
         self.embedpos_fn, self.input_ch_pos = get_encoder(config['pos']['enc'], n_bins=self.config['pos']['n_bins'])
 
         # Sparse parametric encoding (SDF)
-        # self.embed_fn, self.input_ch = get_encoder(config['grid']['enc'], log2_hashmap_size=config['grid']['hash_size'], desired_resolution=self.resolution_sdf)
         self.embed_fn, self.input_ch = get_encoder(config['grid']['enc'], log2_hashmap_size=config['grid']['hash_size'], desired_resolution=256)
 
 
     # @brief: get MLP
     def get_decoder(self, config):
-        # self.decoder = ColorSDFNet_v2(config, input_ch=self.input_ch, input_ch_pos=self.input_ch_pos)  # Co-SLAM scene rep
         self.decoder = MLP_reg(config, input_ch=self.input_ch, input_ch_pos=self.input_ch_pos)  # MLP + MRHG
-        # self.decoder = MLP_reg2(config, input_ch=self.input_ch, input_ch_pos=self.input_ch_pos)  # pure MLP
-
-        # self.color_net = batchify(self.decoder.color_net, None)
-        # self.sdf_net = batchify(self.decoder.sdf_net, None)
 
 
     # @brief: save initial values of encoding parameters and MLP parameters
@@ -90,7 +83,7 @@ class JointEncoding(nn.Module):
         return weights / (torch.sum(weights, axis=-1, keepdims=True) + 1e-8)
 
 
-    def raw2outputs(self, raw, z_vals, white_bkgd=False):
+    def raw2outputs(self, raw, z_vals):
         '''
         Perform volume rendering using weights computed from sdf.
 
@@ -112,9 +105,6 @@ class JointEncoding(nn.Module):
         disp_map = 1. / torch.max(1e-10 * torch.ones_like(depth_map), depth_map / torch.sum(weights, -1))
         acc_map = torch.sum(weights, -1)
 
-        if white_bkgd:  # default: skip if
-            rgb_map = rgb_map + (1.-acc_map[..., None])
-
         return rgb_map, disp_map, acc_map, weights, depth_map, depth_var
 
     # @param query_points: Tensor(N_rays, N_samples, 3)
@@ -135,7 +125,6 @@ class JointEncoding(nn.Module):
 
         # Step 1: get parametric encoding + pos encoding
         embed = self.embed_fn(inputs_flat)
-        # embed_color = self.embed_fn_color(inputs_flat)
         embe_pos = self.embedpos_fn(inputs_flat)
 
         # Step 2: feed embeddings to decoders
@@ -194,34 +183,12 @@ class JointEncoding(nn.Module):
         # Step 3: do inference and volume rendering
         pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]  # Tensor(N_rays, N_samples, 3)
         raw = self.run_network(pts)  # Tensor(N_rays, N_samples, 3), device=cuda:0
-        rgb_map, disp_map, acc_map, weights, depth_map, depth_var = self.raw2outputs(raw, z_vals, self.config['training']['white_bkgd'])
-
-        # Step 4: importance sampling
-        if self.config['training']['n_importance'] > 0:  # default: skip if
-            rgb_map_0, disp_map_0, acc_map_0, depth_map_0, depth_var_0 = rgb_map, disp_map, acc_map, depth_map, depth_var
-
-            z_vals_mid = .5 * (z_vals[..., 1:] + z_vals[..., :-1])
-            z_samples = sample_pdf(z_vals_mid, weights[..., 1:-1], self.config['training']['n_importance'], det=(self.config['training']['perturb']==0.))
-            z_samples = z_samples.detach()
-
-            z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
-            pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None] # [N_rays, N_samples + N_importance, 3]
-
-            raw = self.run_network(pts)
-            rgb_map, disp_map, acc_map, weights, depth_map, depth_var = self.raw2outputs(raw, z_vals, self.config['training']['white_bkgd'])
+        rgb_map, disp_map, acc_map, weights, depth_map, depth_var = self.raw2outputs(raw, z_vals)
 
         ret = {'rgb': rgb_map, 'depth': depth_map, 'disp_map': disp_map, 'acc_map': acc_map, 'depth_var': depth_var}
         ret = {**ret, 'z_vals': z_vals}
 
         ret['raw'] = raw
-
-        if self.config['training']['n_importance'] > 0:  # default: skip if
-            ret['rgb0'] = rgb_map_0
-            ret['disp0'] = disp_map_0
-            ret['acc0'] = acc_map_0
-            ret['depth0'] = depth_map_0
-            ret['depth_var0'] = depth_var_0
-            ret['z_std'] = torch.std(z_samples, dim=-1, unbiased=False)
         return ret
 
 
@@ -265,8 +232,7 @@ class JointEncoding(nn.Module):
         sdf_prob = rend_dict['raw'][..., 5:]  # [N_rand, N_samples + N_importance, class_num]
         truncation = self.config['training']['trunc'] * self.config['data']['sc_factor']
 
-        # fs_loss, sdf_loss = get_sdf_loss(z_vals, target_d, sdf, truncation, 'l2', grad=None)
-        fs_loss, sdf_loss = get_sdf_loss2(z_vals, target_d, sdf, sdf_prob, truncation, 5, EMD_w, 'l2')
+        fs_loss, sdf_loss = get_sdf_loss(z_vals, target_d, sdf, sdf_prob, truncation, 5, EMD_w, 'l2')
 
         ret = {
             "rgb": rend_dict["rgb"],

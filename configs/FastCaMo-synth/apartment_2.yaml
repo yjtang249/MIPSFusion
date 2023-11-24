@@ -22,19 +22,6 @@ mapping:
 grid:
   hash_size: 16
 
-#tracking:
-#  iter_RO: 10  # iter num for RO
-#  iter: 5  # iter num for GO
-#  sample: 1000
-#  RO:
-#    particle_size: 2000
-#    initial_scaling_factor: 0.02
-#    rescaling_factor: 0.5
-#    pixel_num: 400  # number of pixels sampled for each particle
-#    n_rows: 16
-#    n_cols: 24
-#    beta: 0.9
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/apartment_2
   trainskip: 1

@@ -1,8 +1,6 @@
 inherit_from: configs/FastCaMo-large/FastCaMo-large.yaml
 
 mapping:
-#  bound: [[-8.6, 1.9], [-5.6, 2.4], [-1.6, 2.1]]
-#  marching_cubes_bound: [[-8.6, 1.9], [-5.6, 2.4], [-1.6, 2.1]]
   bound: [[-9.3, 2.1], [-6.1, 3.9], [-2.5, 2.1]]
   marching_cubes_bound: [[-9.3, 2.1], [-6.1, 3.9], [-2.5, 2.1]]
 
@@ -22,4 +20,3 @@ mesh:
   ckpt_freq: 250
   voxel_eval: 0.05
   voxel_final: 0.03
-  visualisation: False

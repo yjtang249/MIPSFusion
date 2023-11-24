@@ -5,7 +5,7 @@ mapping:
   marching_cubes_bound: [[-1.6, 11.7], [-1.9, 4.7], [-1.5, 2.1]]
 
 grid:
-  hash_size: 16 # 1.59M
+  hash_size: 16
   
 
 data:

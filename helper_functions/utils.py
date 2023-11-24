@@ -1,73 +1,9 @@
-# package imports
 import torch
 import torch.nn.functional as F
-from math import exp, log, floor
 
 
 def mse2psnr(x):
-    '''
-    MSE to PSNR
-    '''
     return -10. * torch.log(x) / torch.log(torch.Tensor([10.])).to(x)
-
-
-def coordinates(voxel_dim, device: torch.device):
-    '''
-    Params: voxel_dim: int or tuple of int
-    Return: coordinates of the voxel grid
-    '''
-    if type(voxel_dim) is int:
-        nx = ny = nz = voxel_dim
-    else:
-        nx, ny, nz = voxel_dim[0], voxel_dim[1], voxel_dim[2]
-    x = torch.arange(0, nx, dtype=torch.long, device=device)
-    y = torch.arange(0, ny, dtype=torch.long, device=device)
-    z = torch.arange(0, nz, dtype=torch.long, device=device)
-    x, y, z = torch.meshgrid(x, y, z, indexing="ij")
-
-    return torch.stack((x.flatten(), y.flatten(), z.flatten()))
-
-
-def sample_pdf(bins, weights, N_importance, det=False, eps=1e-5):
-    '''
-    Params:
-        bins: torch.Tensor, (Bs, N_samples)
-        weights: torch.Tensor, (Bs, N_samples)
-        N_importance: int
-    Return:
-        samples: torch.Tensor, (Bs, N_importance)
-    '''
-    # device = weights.get_device()
-    device = weights.device
-    # Get pdf
-    weights = weights + 1e-5  # prevent nans
-    pdf = weights / torch.sum(weights, -1, keepdim=True) # Bs, N_samples-2
-    cdf = torch.cumsum(pdf, -1) 
-    cdf = torch.cat([torch.zeros_like(cdf[..., :1], device=device), cdf], -1) # Bs, N_samples-1
-    # Take uniform samples
-    if det:
-        u = torch.linspace(0. + 0.5 / N_importance, 1. - 0.5 / N_importance, steps=N_importance, device=device)
-        u = u.expand(list(cdf.shape[:-1]) + [N_importance])
-    else:
-        u = torch.rand(list(cdf.shape[:-1]) + [N_importance], device=device)
-
-    # Invert CDF
-    u = u.contiguous()
-    inds = torch.searchsorted(cdf, u, right=True)
-    below = torch.max(torch.zeros_like(inds - 1), inds - 1)
-    above = torch.min((cdf.shape[-1] - 1) * torch.ones_like(inds), inds)
-    inds_g = torch.stack([below, above], -1)  # (batch, N_samples, 2)
-
-    matched_shape = [inds_g.shape[0], inds_g.shape[1], cdf.shape[-1]]
-    cdf_g = torch.gather(cdf.unsqueeze(1).expand(matched_shape), 2, inds_g)
-    bins_g = torch.gather(bins.unsqueeze(1).expand(matched_shape), 2, inds_g)
-
-    denom = (cdf_g[..., 1] - cdf_g[..., 0])
-    denom = torch.where(denom < 1e-5, torch.ones_like(denom, device=device), denom)
-    t = (u - cdf_g[..., 0]) / denom
-    samples = bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])
-
-    return samples
 
 
 def batchify(fn, chunk=1024*64):
@@ -131,32 +67,8 @@ def compute_loss(prediction, target, loss_type='l2'):
     raise Exception('Unsupported loss type')
 
 
-def get_sdf_loss(z_vals, target_d, predicted_sdf, truncation, loss_type=None, grad=None):
-    '''
-    Params:
-        z_vals: torch.Tensor, (Bs, N_samples)
-        target_d: torch.Tensor, (Bs,)
-        predicted_sdf: torch.Tensor, (Bs, N_samples)
-        truncation: float
-    Return:
-        fs_loss: torch.Tensor, (1,)
-        sdf_loss: torch.Tensor, (1,)
-        eikonal_loss: torch.Tensor, (1,)
-    '''
-    front_mask, sdf_mask, fs_weight, sdf_weight = get_masks(z_vals, target_d, truncation)
-
-    fs_loss = compute_loss(predicted_sdf * front_mask, torch.ones_like(predicted_sdf) * front_mask, loss_type) * fs_weight
-    sdf_loss = compute_loss((z_vals + predicted_sdf * truncation) * sdf_mask, target_d * sdf_mask, loss_type) * sdf_weight
-
-    if grad is not None:  # default: skip if
-        eikonal_loss = (((grad.norm(2, dim=-1) - 1) ** 2) * sdf_mask / sdf_mask.sum()).sum()
-        return fs_loss, sdf_loss, eikonal_loss
-
-    return fs_loss, sdf_loss
-
-
 # @brief: considered EMD loss
-def get_sdf_loss2(z_vals, target_d, predicted_sdf, sdf_prob, truncation, cate_num=5, EMD_w=0.01, loss_type="l2"):
+def get_sdf_loss(z_vals, target_d, predicted_sdf, sdf_prob, truncation, cate_num=5, EMD_w=0.01, loss_type="l2"):
     '''
     Params:
         z_vals: torch.Tensor, (Bs, N_samples)
@@ -195,12 +107,5 @@ def get_sdf_loss2(z_vals, target_d, predicted_sdf, sdf_prob, truncation, cate_nu
     else:
         fs_loss = compute_loss(predicted_sdf * front_mask, torch.ones_like(predicted_sdf) * front_mask, loss_type) * fs_weight
         sdf_loss = compute_loss((z_vals + predicted_sdf * truncation) * sdf_mask, target_d * sdf_mask, loss_type) * sdf_weight
-
-    # fs_loss = fs_loss2
-    # sdf_loss = sdf_loss2
-
-    # if grad is not None:  # default: skip if
-    #     eikonal_loss = (((grad.norm(2, dim=-1) - 1) ** 2) * sdf_mask / sdf_mask.sum()).sum()
-    #     return fs_loss, sdf_loss, eikonal_loss
 
     return fs_loss, sdf_loss

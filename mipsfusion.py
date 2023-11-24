@@ -12,7 +12,6 @@ from tqdm import tqdm
 from model.scene_rep import JointEncoding
 from model.keyframe import KeyFrameDatabase
 from datasets.dataset import get_dataset
-from utils.utils import coordinates, colormap_image
 from tools.eval_ate import pose_evaluation
 from optimization.utils import at_to_transform_matrix, qt_to_transform_matrix, matrix_to_axis_angle, matrix_to_quaternion
 from RandomOptimizer import RandomOptimizer
@@ -167,10 +166,6 @@ class MIPSFusion():
             loss += self.config['training']['sdf_weight'] * ret["sdf_loss"]  # default weight: 1000
         if fs:
             loss +=  self.config['training']['fs_weight'] * ret["fs_loss"]  # default weight: 10
-        
-        if smooth and self.config['training']['smooth_weight'] > 0:
-            loss += self.config['training']['smooth_weight'] * self.smoothness(self.config['training']['smooth_pts'], self.config['training']['smooth_vox'],
-                                                                               margin=self.config['training']['smooth_margin'])
         return loss             
 
 
@@ -205,7 +200,6 @@ class MIPSFusion():
 
         # Step 2: training scene representation (default: n_iters=500)
         self.model.train()
-
         for i in range(n_iters):
             self.map_optimizer.zero_grad()
             indice = self.select_samples(self.dataset.H, self.dataset.W, self.config['mapping']['sample'])  # sample pixels every round(default: 2048)
@@ -226,8 +220,6 @@ class MIPSFusion():
         
         # First frame must be keyframe and will stay fixed in the following optimization
         self.kfSet.add_keyframe(batch, filter_depth=self.config['mapping']['filter_depth'])
-        # if self.config['mapping']['first_mesh']:
-        #     self.logger.extract_a_mesh(0, self.active_localMLP_Id[0], self.model)
         
         print('First frame mapping done')
         return ret, loss
@@ -262,32 +254,6 @@ class MIPSFusion():
         print(printCurrentDatetime() + "(ActiveMap) Finished initializing localMLP_%d !!!" % self.active_localMLP_Id[0])
 
 
-    def smoothness(self, sample_points=256, voxel_size=0.1, margin=0.05, color=False):
-        '''
-        Smoothness loss of feature grid
-        '''
-        volume = self.bounding_box[:, 1] - self.bounding_box[:, 0]
-
-        grid_size = (sample_points-1) * voxel_size
-        offset_max = self.bounding_box[:, 1] - self.bounding_box[:, 0] - grid_size - 2 * margin
-
-        offset = torch.rand(3).to(offset_max) * offset_max + margin
-        coords = coordinates(sample_points - 1, 'cpu', flatten=False).float().to(volume)
-        pts = ( coords + torch.rand((1, 1, 1, 3)).to(volume) ) * voxel_size + self.bounding_box[:, 0] + offset
-
-        if self.config['grid']['tcnn_encoding']:
-            pts_tcnn = (pts - self.bounding_box[:, 0]) / (self.bounding_box[:, 1] - self.bounding_box[:, 0])
-
-        # sdf = self.model.query_sdf(pts_tcnn, embed=True)
-        sdf = self.model.query_sdf(pts_tcnn)
-        tv_x = torch.pow(sdf[1:, ...] - sdf[:-1, ...], 2).sum()
-        tv_y = torch.pow(sdf[:, 1:, ...] - sdf[:, :-1, ...], 2).sum()
-        tv_z = torch.pow(sdf[:, :, 1:, ...] - sdf[:, :, :-1, ...], 2).sum()
-
-        loss = (tv_x + tv_y + tv_z) / (sample_points**3)
-        return loss
-
-
     # @brief: freeze the model parameters
     def freeze_model(self):
         for param in self.model.embed_fn.parameters():
@@ -311,8 +277,8 @@ class MIPSFusion():
     def get_pose_param_optim_switch(self, poses):
         cur_trans = torch.nn.parameter.Parameter(poses[:, :3, 3])  # Parameter(n, 3)
         cur_rot = torch.nn.parameter.Parameter(self.matrix_to_tensor(poses[:, :3, :3]))  # rot mat --> quat, Parameter(n, 4)
-        pose_optimizer = torch.optim.Adam([{"params": cur_rot, "lr": self.config["tracking"]['switch']['lr_rot']},
-                                           {"params": cur_trans, "lr": self.config["tracking"]['switch']['lr_trans']}])
+        pose_optimizer = torch.optim.Adam([{"params": cur_rot, "lr": self.config["tracking"]["switch"]["lr_rot"]},
+                                           {"params": cur_trans, "lr": self.config["tracking"]["switch"]["lr_trans"]}])
         return cur_rot, cur_trans, pose_optimizer
 
 
@@ -439,7 +405,6 @@ class MIPSFusion():
 
         if related_ov_kf_Ids.shape[0] > 0:
             self.overlap_kf_flag[related_ov_kf_Ids] = self.process_flag
-    # END local_BA()
 
 
     # @brief: do local BA for loop-triggering keyframe with its nearest top K keyframes;
@@ -516,7 +481,6 @@ class MIPSFusion():
         if pose_optimizer is not None and len(kf_ids_all) > 1:
             pose_local_ovlp = self.matrix_from_tensor(cur_rot, cur_trans).detach().clone()[0]
             self.est_c2w_data[overlap_frame_id] = pose_local_ovlp
-    # END local_BA()
 
 
     # @brief: predict initial value of current pose from previous pose using camera motion model
@@ -543,13 +507,10 @@ class MIPSFusion():
     # @param n_iter_GO: iter num for RO, int;
     # @param switch_tracking: whether it's processing active submap switch, bool.
     def tracking_render(self, batch, frame_id, n_iter_RO, n_iter_GO, switch_tracking=False):
-        # c2w_gt = batch['c2w'][0].to(self.device)  # gt pose(c2w, World Coordinate System)
-
         if switch_tracking:
             cur_c2w = self.est_c2w_data[frame_id]
         else:
-            const_speed = self.config['tracking']['const_speed']
-            # const_speed = self.config['tracking']['const_speed'] if n_iter_RO <= 0 else False
+            const_speed = self.config["tracking"]["const_speed"]
             cur_c2w = self.predict_current_pose(frame_id, const_speed)  # get initial pose of this frame, Tensor(4, 4)
         self.freeze_model()
 
@@ -653,34 +614,6 @@ class MIPSFusion():
                 kf_id = frame_id // self.config['mapping']['keyframe_every']  # keyframe_Id of this keyframe
                 self.keyframe_ref[kf_id] = self.active_first_kf[0]
 
-        # # Step 3: Save relative pose for non-keyframes
-        # if frame_id % self.config['mapping']['keyframe_every'] != 0:  # case 1: for non-keyframe
-        #     kf_id = frame_id // self.config['mapping']['keyframe_every']  # keyframe_Id of ref keyframe
-        #     kf_frame_id = kf_id * self.config['mapping']['keyframe_every']  # frame_Id of ref keyframe
-        #
-        #     kf_ref = self.keyframe_ref[kf_id]
-        #     if kf_ref >= 0:  # case 1.1: for ordinary keyframes
-        #         kf_pose_local = self.est_c2w_data[kf_frame_id]
-        #     else:  # case 1.2: for first keyframes and overlapping keyframes
-        #         ref_localMLP_Id = self.kfSet.keyframe_localMLP[
-        #             kf_id, 0]  # reference localMLP_Id of current keyframe
-        #         first_kf_pose = extract_first_kf_pose(ref_localMLP_Id, self.kfSet.localMLP_first_kf,
-        #                                               self.kf_c2w)  # Tensor(4, 4)
-        #         kf_pose_local = first_kf_pose.inverse() @ self.kf_c2w[kf_id]
-        #
-        #     # c2w_key = self.est_c2w_data[kf_frame_id]  # absolute estimated pose of ref keyframe (in Local Coordinate System)
-        #     delta = kf_pose_local.inverse() @ self.est_c2w_data[frame_id]
-        #     # delta = self.est_c2w_data[frame_id] @ kf_pose_local.float().inverse()
-        #     self.est_c2w_data_rel[frame_id] = delta
-        # else:  # case 2: for keyframe
-        #     if switch_tracking == False:
-        #         kf_id = frame_id // self.config['mapping']['keyframe_every']  # keyframe_Id of this keyframe
-        #         self.keyframe_ref[kf_id] = self.active_first_kf[0]
-
-        # TEST
-        # print( 'Best loss: {}, Last loss: {}'.format( F.l1_loss(best_c2w_est.to(self.device)[0, :3], c2w_gt[:3]).cpu().item(), F.l1_loss(c2w_est[0,:3], c2w_gt[:3]).cpu().item() ) )
-        # END TEST
-
 
     # @brief: Create optimizer for mapping (embedding + MLP)
     def create_optimizer(self):
@@ -781,19 +714,6 @@ class MIPSFusion():
         data_loader = DataLoader(self.dataset, num_workers=self.config['data']['num_workers'])
 
         for i, batch in tqdm( enumerate(data_loader) ):
-            # Visualizing each frame
-            if self.config['mesh']['visualisation']:  # default: skip if
-                rgb = cv2.cvtColor(batch["rgb"].squeeze().cpu().numpy(), cv2.COLOR_BGR2RGB)
-                raw_depth = batch["depth"]
-                mask = (raw_depth >= self.config["cam"]["depth_trunc"]).squeeze(0)
-                depth_colormap = colormap_image(batch["depth"])
-                depth_colormap[:, mask] = 255.
-                depth_colormap = depth_colormap.permute(1, 2, 0).cpu().numpy()
-                image = np.hstack((rgb, depth_colormap))
-                cv2.namedWindow('RGB-D'.format(i), cv2.WINDOW_AUTOSIZE)
-                cv2.imshow('RGB-D'.format(i), image)
-                key = cv2.waitKey(1)
-
             if i == 0:  # First frame mapping
                 self.first_frame_mapping(batch, self.config['mapping']['first_iters'])
                 self.logger.img_render_save(self.model, self.est_c2w_data[i], batch["rgb"].squeeze(0), batch["depth"].squeeze(0), 0)
@@ -822,7 +742,6 @@ class MIPSFusion():
                     elif return_flag == 1:  # case 2: switch a previous localMLP
                         self.inactive_map.inactive_pause[0] = 1
                         self.active_submap_switch(i, kf_id, batch)
-                        # self.tracking_render(batch, i, self.config["tracking"]["iter_RO"], self.config["tracking"]["iter"], switch_tracking=True)
                         self.local_BA_switch(batch, kf_id, i)
 
                         self.key_keyframe_Id[0] = kf_id
@@ -832,30 +751,16 @@ class MIPSFusion():
                     self.kfSet.collected_kf_num[0] = self.kfSet.collected_kf_num[0] + 1
                 self.tracked_frame_Id[0] = i
 
-                if i % self.config['mesh']['vis'] == 0:  # default: 500
-                    # if i % 500 == 0:
-                    #     self.logger.save_mesh(i, voxel_size=self.config['mesh']['voxel_eval'])
+                if i % self.config["mesh"]["vis"] == 0:
                     pose_relative = self.logger.convert_relative_pose(i)
                     pose_world = self.logger.convert_world_pose(pose_relative)
-                    # pose_evaluation(self.pose_gt, self.est_c2w_data, 1, os.path.join(self.config['data']['output'], self.config['data']['exp_name']), i)
                     pose_evaluation(self.pose_gt, pose_world, 1, os.path.join(self.config['data']['output'], self.config['data']['exp_name']), i, img='pose_r', name='output_relative.txt')
                     self.logger.save_traj_tum(pose_world, os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "traj_%d.txt" % i) )
-                    # self.logger.img_render_save(self.model, self.est_c2w_data[i], batch["rgb"].squeeze(0), batch["depth"].squeeze(0), i)
-                    # self.logger.extract_a_mesh(i, self.active_localMLP_Id[0], self.model)
-
-                    if self.config['mesh']['visualisation']:  # default: skip
-                        cv2.namedWindow('Traj:'.format(i), cv2.WINDOW_AUTOSIZE)
-                        traj_image = cv2.imread(os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "pose_r_{}.png".format(i)))
-                        image_show = traj_image
-                        cv2.imshow('Traj:'.format(i), image_show)
-                        key = cv2.waitKey(1)
-                    torch.cuda.empty_cache()
 
                 if self.config["mesh"]["ckpt_freq"] > 0 and i % self.config["mesh"]["ckpt_freq"] == 0:
                     self.logger.save_ckpt_active(self.tracked_frame_Id[0], self.model, self.active_localMLP_Id[0])
                     self.ckpt_frame_Id[0] = i
-            # end if-else
-        # end for
+
 
         # model_savepath = os.path.join(self.config['data']['output'], self.config['data']['exp_name'], 'checkpoint{}.pt'.format(i))
         # self.logger.save_ckpt(model_savepath)
@@ -864,7 +769,6 @@ class MIPSFusion():
         pose_relative = self.logger.convert_relative_pose(self.dataset.num_frames-1)
         pose_world = self.logger.convert_world_pose(pose_relative)
 
-        # pose_evaluation(self.pose_gt, self.est_c2w_data, 1, os.path.join(self.config['data']['output'], self.config['data']['exp_name']), i)
         pose_evaluation(self.pose_gt, pose_world, 1, os.path.join(self.config['data']['output'], self.config['data']['exp_name']), i, img='pose_r', name='output_relative.txt')
         self.logger.save_traj_tum(pose_world, os.path.join(os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "traj_%d.txt" % i)))
 
@@ -872,9 +776,7 @@ class MIPSFusion():
         self.seq_end[0] = 1
         print(printCurrentDatetime() + "seq end")
 
-        # wait child processes
         for p in processes:
             p.join()
 
         print(printCurrentDatetime() + "ActiveMap Process ends!!!! PID=", os.getpid())
-# END class MIPSFusion

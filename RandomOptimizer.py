@@ -20,29 +20,17 @@ class RandomOptimizer():
         self.scaling_coefficient1 = self.cfg["tracking"]["RO"]["initial_scaling_factor"]  # initial scaling factor of each axis, default: 0.02
         # self.scaling_coefficient1 = torch.tensor([0.01, 0.01, 0.01, 0.05, 0.05, 0.05]).to(self.device)
 
-        self.particle_size_switch = self.cfg["tracking"]["switch"]["RO"]["particle_size"]  # size of particle swarm template, default: 2000
-        # self.scaling_coefficient1_switch = self.cfg["tracking"]["switch"]["RO"]["initial_scaling_factor"]  # initial scaling factor of each axis, default: 0.02
-        self.scaling_coefficient1_switch = torch.tensor([0.02, 0.02, 0.02, 0.05, 0.05, 0.05]).to(self.device)
-
-
         self.scaling_coefficient2 = self.cfg["tracking"]["RO"]["rescaling_factor"]  # coefficient for update search size, default: 0.5
         self.sdf_weight = 1000.
         self.trunc_value = self.cfg["training"]["trunc"]
 
-        # mean, cov = torch.zeros(6), torch.eye(6) * (0.5)**2
         mean, cov = torch.zeros(6), torch.eye(6)
 
-        # small PST
+        # PST
         self.pre_sampled_particle = np.random.multivariate_normal(mean, cov, self.particle_size).astype(np.float32)  # pre-sampled PST, ndarray(particle_size, 6)
         self.pre_sampled_particle = torch.from_numpy(self.pre_sampled_particle).to(self.device)
         self.pre_sampled_particle[0, :] = 0
         self.pre_sampled_particle = torch.clamp(self.pre_sampled_particle, -2., 2.)  # TEST
-
-        # big PST
-        self.pre_sampled_particle_switch = np.random.multivariate_normal(mean, cov, self.particle_size_switch).astype(np.float32)  # pre-sampled PST, ndarray(particle_size, 6)
-        self.pre_sampled_particle_switch = torch.from_numpy(self.pre_sampled_particle_switch).to(self.device)
-        self.pre_sampled_particle_switch[0, :] = 0
-        self.pre_sampled_particle_switch = torch.clamp(self.pre_sampled_particle_switch, -2., 2.)  # TEST
 
         self.no_rel_trans = torch.tensor([1., 0., 0., 0., 0., 0., 0.]).to(self.device)  # pose representing no transformation happened
 
@@ -237,70 +225,6 @@ class RandomOptimizer():
             weight_sum = torch.sum(weights) + 0.00001  # Tensor(, )
 
             success_flag = ( torch.count_nonzero(better_mask) > 0 )
-            if success_flag:
-                mean_sdf = torch.sum(weights * pred_mean_sdf) / weight_sum  # mean pred SDF of APS, Tensor(, )
-            else:
-                mean_sdf = pred_mean_sdf[0]
-
-            # Step 4: update R, t
-            rot_cur_bf = rot_cur.clone()  # TEST
-            trans_cur_bf = trans_cur.clone()  # TEST
-            if success_flag:
-                mean_transform = torch.sum(rescaled_pst_7D * weights[:, None], dim=0) / weight_sum  # weighted mean of APS, Tensor(7, )
-                mean_transform_quat = mean_transform[:4] / (mean_transform[:4].norm() + 1e-5)  # [qw, qx, qy, qz], Tensor(4, )
-                mean_transform = torch.cat([mean_transform_quat, mean_transform[4:]], dim=0)  # weighted mean of APS, Tensor(7, )
-                rot_cur, trans_cur = self.update_cur_pose(rot_cur, trans_cur, mean_transform)  # update current pose(starting point of next round) Tensor(3, 3) / Tensor(3, 1)
-            else:
-                mean_transform = self.no_rel_trans
-
-            # Step 5: rescaling particle swarm template (update search_size)
-            search_size_temp = self.update_search_size(mean_sdf, mean_transform[1:])  # Tensor(1, 6)
-            search_size = torch.where(success_flag, search_size_temp, search_size_temp * 2).to(self.device)
-        # END for
-
-        tracked_pose = pose_compose(rot_cur, trans_cur)  # Tensor(4, 4)
-        return tracked_pose
-
-
-    # @param depth_img: gt depth image of current frame, Tensor(h, w);
-    # @param last_frame_pose: tracked pose of last frame(c2w, Local Coordinate System), Tensor(4, 4);
-    # @param n_iter: iter num;
-    # -@return: Tensor(4, 4).
-    @torch.no_grad()
-    def optimize_switch(self, model, depth_img, last_frame_pose, n_iter=10):
-        if n_iter <= 0:
-            return last_frame_pose
-
-        rot_cur, trans_cur = last_frame_pose[:3, :3], last_frame_pose[:3, 3:]  # Tensor(3, 3) / Tensor(3, 1)
-        search_size = self.scaling_coefficient1_switch
-
-        # pixel sampling
-        # indice = sample_pixels_random(self.dataset.H - self.iH * 2, self.dataset.W - self.iW * 2, self.cfg["tracking"]["RO"]["pixel_num"])  # pixel sampling, default: 400
-        indice = sample_valid_pixels_random(depth_img[self.iH: -self.iH, self.iW: -self.iW], self.cfg["tracking"]["RO"]["pixel_num"])
-
-        indice_h, indice_w = torch.remainder(indice, self.dataset.H - self.iH * 2), torch.div(indice, self.dataset.H - self.iH * 2, rounding_mode="floor")
-        target_d = depth_img[self.iH: -self.iH, self.iW: -self.iW][indice_h, indice_w].to(self.device).unsqueeze(-1)  # Tensor(pixel_num, 1)
-        rays_d_cam = self.rays_dir[self.iH: -self.iH, self.iW: -self.iW][indice_h, indice_w, :].to(self.device)  # Tensor(pixel_num, 3)
-
-        for i in range(n_iter):
-            # Step 1: recover absolute pose for each particle in template
-            # Step 1.1: get delta pose from pre-sampled particles
-            rescaled_pst = self.pre_sampled_particle_switch * search_size  # Tensor(N, 6)
-            rescaled_pst_7D = self.pose_6D_to_7D(rescaled_pst)  # Tensor(N, 7)
-
-            # Step 1.2: recover to absolute pose
-            abs_rot_pst, abs_trans_pst = self.get_abs_pose(rot_cur, trans_cur, rescaled_pst_7D)  # Tensor(N, 3, 3) / Tensor(N, 3, 1)
-
-            # Step 2: *** evaluate (compute fitness value) each particle
-            fitness_values, pred_mean_sdf = self.get_fitness(model, abs_rot_pst, abs_trans_pst, last_frame_pose, target_d, rays_d_cam)  # Tensor(N, ) / Tensor(N, )
-
-            # Step 3: filter advanced particle swarm (APS)
-            original_fitness = fitness_values[0]
-            better_mask = torch.where(fitness_values < original_fitness, torch.ones_like(original_fitness), torch.zeros_like(original_fitness))  # Tensor(N, )
-            weights = (original_fitness - fitness_values) * better_mask  # weight of each particle(with mask, 0 for non-advanced particle), Tensor(N, )
-            weight_sum = torch.sum(weights) + 0.00001  # Tensor(, )
-
-            success_flag = (torch.count_nonzero(better_mask) > 0)
             if success_flag:
                 mean_sdf = torch.sum(weights * pred_mean_sdf) / weight_sum  # mean pred SDF of APS, Tensor(, )
             else:

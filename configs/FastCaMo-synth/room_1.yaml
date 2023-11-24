@@ -6,7 +6,6 @@ mapping:
 
 grid:
   hash_size: 16
-  
 
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/room_1

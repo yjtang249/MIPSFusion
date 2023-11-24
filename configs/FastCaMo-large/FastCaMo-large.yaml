@@ -9,8 +9,8 @@ data:
 sampling:
   n_rays_h: 16
   n_rays_w: 24
-  kf_n_rays_h: 150  # default: 114
-  kf_n_rays_w: 200  # default: 154
+  kf_n_rays_h: 150
+  kf_n_rays_w: 200
 
 mapping:
   sample: 1800
@@ -73,12 +73,6 @@ tracking:
     n_cols: 24
     beta: 0.9
   switch:
-    RO:
-      particle_size: 2500
-      initial_scaling_factor: 0.075
-      rescaling_factor: 0.5
-      pixel_num: 400  # number of pixels sampled for each particle
-      beta: 0.9
     lr_rot: 0.001
     lr_trans: 0.001
     align_threshold: 0.1
@@ -100,14 +94,6 @@ pos:
   enc: 'Frequency'
   n_bins: 8
 
-decoder:
-  geo_feat_dim: 15
-  hidden_dim: 32
-  num_layers: 2
-  num_layers_color: 2
-  hidden_dim_color: 32
-  tcnn_network: False
-
 cam:
   H: 480
   W: 640
@@ -126,17 +112,10 @@ training:
   depth_weight: 0.
   sdf_weight: 1000
   fs_weight: 10
-  eikonal_weight: 0
-  smooth_weight: 0.001 #0.001
-  smooth_pts: 64
-  smooth_vox: 0.1
-  smooth_margin: 0.05
   n_samples_d: 50  # number of depth value sampled uniformly along a ray
   range_d: 0.2
   n_range_d: 25  # number of depth value sampled around surface along a ray
-  n_importance: 0
   perturb: 1
-  white_bkgd: False
   norm_factor: 1.
   trunc: 0.1
   rot_rep: 'quat'
@@ -149,6 +128,5 @@ mesh:
   ckpt_freq: 500
   voxel_eval: 0.05
   voxel_final: 0.03
-  visualisation: False
   simply_joint: True
   

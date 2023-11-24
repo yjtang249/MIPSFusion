@@ -11,7 +11,11 @@ mapping:
   min_containing_ratio: 0.75
   min_containing_ratio_mo: 0.8
   min_containing_ratio_back: 0.9
+  min_cr_localMLP_len: [ 5., 5., 4. ]
+  localMLP_max_len: [ 7., 7., 4. ]
+  localMLP_max_len_back: [ 7., 7., 4. ]
   map_every: 3
+  pose_accum_step: 2
 
 tracking:
   switch:
@@ -21,8 +25,8 @@ grid:
   hash_size: 16
 
 data:
-  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/building1
+  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/floor1_5
   trainskip: 1
-  output: output/FastCaMo-large/floor1
+  output: output/FastCaMo-large/floor1_2
   exp_name: "0"
   starting_frame: -1

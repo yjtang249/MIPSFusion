@@ -21,18 +21,6 @@ class PoseGraph(nn.Module):
     def get_pose_mat(self):
         return self.nodes.matrix().detach()
 
-    # # @param edges: each edge indicates 2 related nodes(localMLP_Id), Tensor(n, 2);
-    # # @param poses: each pose represents from first local coords to second local coords, Tensor(n, 4, 4);
-    # #-@return: Tensor(n, 6).
-    # def forward(self, edges, poses):
-    #     nodes_all = torch.cat( [self.poses_SE3[0:1], self.nodes[1:]] )  # first_keyframe's pose will never be updated
-    #     node1 = nodes_all[edges[..., 0]]  # LiTensor(n, 7)
-    #     node2 = nodes_all[edges[..., 1]]  # LiTensor(n, 7)
-    #
-    #     poses_SE3 = mat2SE3(poses)  # LiTensor(n, 7)
-    #     error = poses_SE3 @ (node1.Inv() @ node2)  # LiTensor(n, 7)
-    #     return error.Log().tensor()
-
 
     # @param edges: each edge indicates 2 related nodes(localMLP_Id), Tensor(n, 2);
     # @param poses: each pose represents from first local coords to second local coords, Tensor(n, 4, 4);
