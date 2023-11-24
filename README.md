@@ -37,7 +37,9 @@ To get reconstructd triangle mesh of the scene, an extra step (joint marching cu
 ```
 python vis/render_mesh.py --config {config_file} --seq_result {result_path} --ckpt {ckpt_id}
 ```
-Here `ckpt_id` is the ID corresponding to a selected checkpoint (checkpoints are periodically saved while the coding is running), such as `100`, `500`, `final`. You can choose to either rendrer the final mesh or mesh reconstructed until `100-th` or `500-th` frame.
+Here `ckpt_id` is the ID corresponding to a selected checkpoint (checkpoints are periodically saved while the coding is running), such as `100`, `500`, `final`. 
+
+By this way, You can choose to either render the final mesh or reconstructed mesh until `100-th` (or `500-th`) frame.
 
 For example:
 ```
