@@ -28,7 +28,7 @@ For example:
 ```
 python main.py --config configs/FastCaMo-synth/apartment_2.yaml
 ```
-Beforing running, please make sure that `data/datadir` in `{config_file}`(the directory storing the data of this sequence) is set correctly.
+&#x1F6A8; Beforing running, please make sure that `data/datadir` in `{config_file}`(the directory storing the data of this sequence) is set correctly.
 
 The result will be saved to `{result_path}=output/{dataset_name}/{sequence_name}/0` by default. For example: `output/FastCaMo-synth/apartment_2/0`.
 
