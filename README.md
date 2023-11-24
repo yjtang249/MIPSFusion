@@ -33,7 +33,7 @@ Beforing running, please make sure that `data/datadir` in `{config_file}`(the di
 The result will be saved to `{result_path}=output/{dataset_name}/{sequence_name}/0` by default. For example: `output/FastCaMo-synth/apartment_2/0`.
 
 ## Visualization
-To get final reconstructd triangle mesh of the scene, an extra step (joint marching cubes) should be taken. You can run
+To get reconstructd triangle mesh of the scene, an extra step (joint marching cubes) should be taken. You can run
 ```
 python vis/render_mesh.py --config {config_file} --seq_result {result_path} --ckpt {ckpt_id}
 ```
