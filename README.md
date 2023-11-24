@@ -6,6 +6,7 @@ This project is based on our SIGGRAPH Asia 2023 paper, [MIPS-Fusion: Multi-Impli
 MIPSFusion is a neural RGB-D SLAM method based on multi-implicit submap representation, which enables scalable online tracking and mapping for large indoor scenes. Based on divide-and-conquer mapping scheme, each submap is assigned to learn a sub-area of the scene, as shown by the colored bounding box, and a new submap will be created when scanning a new area. This incremental strategy ensures our method has the potential to reconstruct large scenes. Besides, our method can handle fast camera motion.
 <img src="fig/1.png" alt="drawing" width="700"/>
 
+
 ## Installation
 We recommend to creat an annacoda environment from [environment.yaml](environment.yaml)
 ```
@@ -20,6 +21,7 @@ cd external/NumpyMarchingCubes
 python setup.py install
 ```
 
+
 ## Run
 ```
 python main.py --config {config_file}
@@ -31,6 +33,7 @@ python main.py --config configs/FastCaMo-synth/apartment_2.yaml
 &#x1F6A8; Beforing running, please make sure that `data/datadir` in `{config_file}`(the directory storing the data of this sequence) is set correctly.
 
 &#x27A1; The result will be saved to `{result_path}=output/{dataset_name}/{sequence_name}/0` by default. For example: `output/FastCaMo-synth/apartment_2/0`.
+
 
 ## Visualization
 To get reconstructd triangle mesh of the scene, an extra step (joint marching cubes) should be taken. You can run
@@ -47,8 +50,10 @@ python vis/render_mesh.py --config configs/FastCaMo-synth/apartment_2.yaml --seq
 ```
 &#x27A1; The reconstructed mesh can be found at `{result_path}/result`. For example: `output/FastCaMo-synth/apartment_2/0/result`.
 
+
 ## Acknowledgement
 Some codes are modified from [Neural RGB-D Surface Reconstruction](https://dazinovic.github.io/neural-rgbd-surface-reconstruction/), [NICE-SLAM](https://github.com/cvg/nice-slam), [Co-SLAM](https://github.com/HengyiWang/Co-SLAM/tree/main), [pypose](https://github.com/pypose/pypose), and [tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn). Thanks to all of the above.
+
 
 ## Citation
 If you find our code or paper useful, please cite
