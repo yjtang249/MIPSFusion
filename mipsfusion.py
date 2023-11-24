@@ -159,13 +159,13 @@ class MIPSFusion():
     def get_loss_from_ret(self, ret, rgb=True, sdf=True, depth=True, fs=True, smooth=False):
         loss = 0
         if rgb:
-            loss += self.config['training']['rgb_weight'] * ret['rgb_loss']  # default weight: 5
+            loss += self.config["training"]["rgb_weight"] * ret["rgb_loss"]  # default weight: 5
         if depth:
-            loss += self.config['training']['depth_weight'] * ret['depth_loss']  # default weight: 1
+            loss += self.config["training"]["depth_weight"] * ret["depth_loss"]  # default weight: 1
         if sdf:
-            loss += self.config['training']['sdf_weight'] * ret["sdf_loss"]  # default weight: 1000
+            loss += self.config["training"]["sdf_weight"] * ret["sdf_loss"]  # default weight: 1000
         if fs:
-            loss +=  self.config['training']['fs_weight'] * ret["fs_loss"]  # default weight: 10
+            loss +=  self.config["training"]["fs_weight"] * ret["fs_loss"]  # default weight: 10
         return loss             
 
 
@@ -181,8 +181,8 @@ class MIPSFusion():
             ret: dict
             loss: float
         '''
-        print('First frame mapping...')
-        c2w = batch['c2w'][0].to(self.device)  # gt pose(c2w) of first pose, Tensor(4, 4), device=cuda:0
+        print('Initializing first frame')
+        c2w = batch["c2w"][0].to(self.device)  # gt pose(c2w) of first pose, Tensor(4, 4), device=cuda:0
         c2w_local = torch.eye(4).to(self.device)
 
         # Step 1: fill keyframe-related, localMLP-related vars for the first keyframe
@@ -202,7 +202,7 @@ class MIPSFusion():
         self.model.train()
         for i in range(n_iters):
             self.map_optimizer.zero_grad()
-            indice = self.select_samples(self.dataset.H, self.dataset.W, self.config['mapping']['sample'])  # sample pixels every round(default: 2048)
+            indice = self.select_samples(self.dataset.H, self.dataset.W, self.config['mapping']['sample'])  # sample pixels every round
             indice_h, indice_w = torch.remainder(indice, self.dataset.H), torch.div(indice, self.dataset.H, rounding_mode="floor")  # selected col_Id, row_Id
 
             rays_d_cam = batch['direction'].squeeze(0)[indice_h, indice_w, :].to(self.device)  # dir of sampled rays in Camera Coords, Tensor(sample_num, 3), device=cuda:0
@@ -738,7 +738,7 @@ class MIPSFusion():
                     # for active submap switch
                     if return_flag == 3:  # case 1: create a new localMLP
                         self.active_submap_switch_new(i, kf_id)
-                        self.initialize_new_localMLP(batch, self.config['mapping']['first_iters'])
+                        self.initialize_new_localMLP(batch, self.config["mapping"]["first_iters"])
                     elif return_flag == 1:  # case 2: switch a previous localMLP
                         self.inactive_map.inactive_pause[0] = 1
                         self.active_submap_switch(i, kf_id, batch)
@@ -772,7 +772,7 @@ class MIPSFusion():
         pose_evaluation(self.pose_gt, pose_world, 1, os.path.join(self.config['data']['output'], self.config['data']['exp_name']), i, img='pose_r', name='output_relative.txt')
         self.logger.save_traj_tum(pose_world, os.path.join(os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "traj_%d.txt" % i)))
 
-        self.logger.save_ckpt_active(self.tracked_frame_Id[0], self.model, self.active_localMLP_Id[0])
+        self.logger.save_ckpt_active(self.tracked_frame_Id[0], self.model, self.active_localMLP_Id[0], final=True)
         self.seq_end[0] = 1
         print(printCurrentDatetime() + "seq end")
 

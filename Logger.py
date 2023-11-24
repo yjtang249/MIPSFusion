@@ -267,8 +267,12 @@ class Logger():
 
 
     # @brief: save checkpoint until frame_id, called by ActiveMap process
-    def save_ckpt_active(self, frame_id, model, active_localMLP_Id):
-        ckpt_dir = os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "ckpt_%d" % frame_id)
+    def save_ckpt_active(self, frame_id, model, active_localMLP_Id, final=False):
+        if final == False:
+            ckpt_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "ckpt_%d" % frame_id)
+        else:
+            ckpt_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "ckpt_final")
+
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
 

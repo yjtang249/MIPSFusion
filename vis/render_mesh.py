@@ -38,7 +38,7 @@ def fill_rays(slam, kfSet):
 
 if __name__ == '__main__':
     print('Start running...')
-    parser = argparse.ArgumentParser(description='Arguments for running the NICE-SLAM/iMAP*.')
+    parser = argparse.ArgumentParser(description='Arguments')
     parser.add_argument('--config', type=str, help='Path to config file.')
     parser.add_argument('--seq_result', type=str, help='Output path of running this sequence.')
     parser.add_argument('--ckpt', type=str, help='Path of selected checkpoint.')
