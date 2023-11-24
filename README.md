@@ -43,6 +43,7 @@ For example:
 ```
 python vis/render_mesh.py --config configs/FastCaMo-synth/apartment_2.yaml --seq_result output/FastCaMo-synth/apartment_2/0 --ckpt final
 ```
+The reconstructed mesh can be found at `{result_path}/result`. For example: `output/FastCaMo-synth/apartment_2/0/result`.
 
 ## Acknowledgement
 Some codes are modified from [Neural RGB-D Surface Reconstruction](https://dazinovic.github.io/neural-rgbd-surface-reconstruction/), [NICE-SLAM](https://github.com/cvg/nice-slam), [Co-SLAM](https://github.com/HengyiWang/Co-SLAM/tree/main), [pypose](https://github.com/pypose/pypose), and [tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn). Thanks to all of the above.
