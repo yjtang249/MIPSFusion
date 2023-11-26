@@ -550,5 +550,5 @@ class InactiveMap():
             if self.counter % 10 == 0:
                 torch.cuda.empty_cache()
 
-        self.logger.save_ckpt_inactive(self.slam.tracked_frame_Id[0], self.model_list, self.slam.active_localMLP_Id[0])
+        self.logger.save_ckpt_inactive(self.slam.tracked_frame_Id[0], self.model_list, self.slam.active_localMLP_Id[0], final=True)
         print(printCurrentDatetime() + "InactiveMap Process ends!!!! PID=", os.getpid())

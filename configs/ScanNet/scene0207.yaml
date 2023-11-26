@@ -3,18 +3,9 @@ mapping:
   bound: [[1.0, 9.3],[-0.3, 7.3],[-0.4, 3.1]]
   marching_cubes_bound: [[1.0, 9.3],[-0.3, 7.3],[-0.4, 3.1]]
 
-  iters: 15
-  keyframe_every: 15
-  min_containing_ratio: 0.75
-  min_containing_ratio_mo: 0.9
-  min_containing_ratio_back: 0.8
   min_cr_localMLP_len: [ 5., 5., 3. ]
   localMLP_max_len: [ 7., 7., 4. ]
   localMLP_max_len_back: [ 7., 7., 4. ]
-  map_every: 5
-
-grid:
-  hash_size: 16
 
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0207_00/output

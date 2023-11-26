@@ -3,11 +3,6 @@ inherit_from: configs/FastCaMo-synth/FastCaMo-synth.yaml
 mapping:
   bound: [[-2.4, 3.85], [-2.1, 5.9], [-6.45, 2.5]]
   marching_cubes_bound: [[-2.4, 3.85], [-2.1, 5.9], [-6.45, 2.5]]
-  localMLP_max_len: [ 7., 7., 7. ]
-  localMLP_max_len_back: [ 7., 7., 7. ]
-
-grid:
-  hash_size: 16
 
 cam:
   near: 0

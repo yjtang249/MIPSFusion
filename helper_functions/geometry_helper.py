@@ -1,7 +1,20 @@
 import numpy as np
 import torch
 import pytorch3d.transforms as transforms
+from pytorch3d.transforms import matrix_to_quaternion, quaternion_to_matrix
 import torch.nn.functional as F
+
+
+# @param rot: Tensor/Parameter(n, 4);
+# @param trans: Tensor/Parameter(n, 3);
+#-@return: Tensor(b, 4, 4).
+def qt_to_transform_matrix(rot, trans):
+    bs = rot.shape[0]
+    T = torch.eye(4).to(rot)[None, ...].repeat(bs, 1, 1)
+    R = quaternion_to_matrix(rot)
+    T[:, :3, :3] = R
+    T[:, :3, 3] = trans
+    return T
 
 
 # @param quat: Tensor(4, )

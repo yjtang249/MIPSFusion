@@ -11,7 +11,6 @@ from model.poseGraph import PoseGraph
 from model.CorrespondFinder import CorrespondFinder
 from helper_functions.geometry_helper import extract_first_kf_pose
 from helper_functions.sampling_helper import sample_pixels_uniformly
-from testing.testing_func import vis_pc, save_pc, draw_registration_result
 
 
 class PoseCorrector():
@@ -42,7 +41,7 @@ class PoseCorrector():
     # @param pose: Tensor(4, 4)
     def construct_pc(self, batch, pose):
         rays_d_cam = batch["direction"].squeeze(0)[self.kfSet.row_indices, self.kfSet.col_indices]  # Tensor(N, 3)
-        target_depth = batch['depth'].squeeze(0)[self.kfSet.row_indices, self.kfSet.col_indices][..., None]  # Tensor(N, 1)
+        target_depth = batch["depth"].squeeze(0)[self.kfSet.row_indices, self.kfSet.col_indices][..., None]  # Tensor(N, 1)
 
         # Camera coords -> World coords
         rays_d = torch.sum(rays_d_cam[:, None, :] * pose[None, :3, :3], -1)  # Tensor(N, 3)

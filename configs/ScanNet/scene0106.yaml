@@ -3,9 +3,6 @@ mapping:
   bound: [[-0.3, 9.6],[-0.3, 9.4],[-0.3, 3.5]]
   marching_cubes_bound: [[-0.3, 9.6],[-0.3, 9.4],[-0.3, 3.5]]
 
-grid:
-  hash_size: 16
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0106_00/output
   trainskip: 1
@@ -16,7 +13,3 @@ data:
 tracking:
   iter_RO: 0
   iter: 10
-
-cam:
-  near: 0
-  far: 5.0

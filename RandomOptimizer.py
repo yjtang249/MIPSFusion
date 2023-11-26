@@ -18,7 +18,6 @@ class RandomOptimizer():
         # 6D pose format: [qx, qy, qz, tx, ty, tz], Tensor(6, )
         self.particle_size = self.cfg["tracking"]["RO"]["particle_size"]  # size of particle swarm template, default: 2000
         self.scaling_coefficient1 = self.cfg["tracking"]["RO"]["initial_scaling_factor"]  # initial scaling factor of each axis, default: 0.02
-        # self.scaling_coefficient1 = torch.tensor([0.01, 0.01, 0.01, 0.05, 0.05, 0.05]).to(self.device)
 
         self.scaling_coefficient2 = self.cfg["tracking"]["RO"]["rescaling_factor"]  # coefficient for update search size, default: 0.5
         self.sdf_weight = 1000.
@@ -80,9 +79,9 @@ class RandomOptimizer():
     # @param pose_trans: Tensor(N, 3, 1);
     #-@return: Tensor(N, m, 3).
     def batch_points_trans(self, points, pose_rot, pose_trans):
-        transed_pts = pose_rot @ torch.transpose(points, 0, 1)  # EagerTensor(N, 3, m)
-        transed_pts = transed_pts + pose_trans  # EagerTensor(N, 3, m)
-        transed_pts = torch.transpose(transed_pts, 1, 2)  # EagerTensor(N, m, 3)
+        transed_pts = pose_rot @ torch.transpose(points, 0, 1)
+        transed_pts = transed_pts + pose_trans
+        transed_pts = torch.transpose(transed_pts, 1, 2)
         return transed_pts
 
 
@@ -101,25 +100,6 @@ class RandomOptimizer():
 
         final_mask = x_mask * y_mask
         return final_mask
-
-
-    # @brief: get overlapping mask (whether each points in overlapping regions with last frame)
-    # @param cam_coords: points in current Camera Coordinate System, Tensor(n, 3);
-    # @param last_frame_pose: Tensor(4, 4)
-    # param abs_rot: Tensor(N, 3, 3);
-    # param abs_trans: Tensor(N, 3, 1);
-    def get_overlap_mask(self, cam_coords, last_frame_pose, particle_abs_rot, particle_abs_trans):
-        # Step 1: current Camera Coordinate System --> last Camera Coordinate System
-        rot_rel, trans_rel = self.get_rel_pose(last_frame_pose, particle_abs_rot, particle_abs_trans)  # Tensor(N, 3, 3) / Tensor(N, 3, 1)
-        last_cam_coords = self.batch_points_trans(cam_coords, rot_rel, trans_rel)  # transform to last frame, Tensor(N, n_rays, 3)
-
-        # Step 2: last Camera Coordinate System --> last Pixel Coordinate System
-        last_cam_coords_flat = torch.reshape(last_cam_coords, (-1, 3))  # Tensor(N * n_rays, 3)
-        pixel_coords = self.project_to_frame(last_cam_coords_flat)  # Tensor(N * n_rays, 2)
-
-        overlap_mask = self.get_range_mask(pixel_coords, float(self.dataset.H), float(self.dataset.W))  # Tensor(N * n_rays)
-        overlap_mask = torch.reshape(overlap_mask, (self.particle_size, self.n_rays))  # Tensor(N, n_rays)
-        return overlap_mask
 
 
     # @brief: evaluate fitness value of each particle;
@@ -207,7 +187,7 @@ class RandomOptimizer():
             target_d = depth_img[indice_h, indice_w].to(self.device).unsqueeze(-1)  # Tensor(pixel_num, 1)
             rays_d_cam = self.rays_dir[indice_h, indice_w, :].to(self.device)  # Tensor(pixel_num, 3)
 
-            # Step 1: recover absolute pose for each particle in template
+            # Step 1: recover absolute pose for each particle(pose) in template
             # Step 1.1: get delta pose from pre-sampled particles
             rescaled_pst = self.pre_sampled_particle * search_size  # Tensor(N, 6)
             rescaled_pst_7D = self.pose_6D_to_7D(rescaled_pst)  # Tensor(N, 7)
@@ -231,8 +211,6 @@ class RandomOptimizer():
                 mean_sdf = pred_mean_sdf[0]
 
             # Step 4: update R, t
-            rot_cur_bf = rot_cur.clone()  # TEST
-            trans_cur_bf = trans_cur.clone()  # TEST
             if success_flag:
                 mean_transform = torch.sum(rescaled_pst_7D * weights[:, None], dim=0) / weight_sum  # weighted mean of APS, Tensor(7, )
                 mean_transform_quat = mean_transform[:4] / (mean_transform[:4].norm() + 1e-5)  # [qw, qx, qy, qz], Tensor(4, )
@@ -244,7 +222,6 @@ class RandomOptimizer():
             # Step 5: rescaling particle swarm template (update search_size)
             search_size_temp = self.update_search_size(mean_sdf, mean_transform[1:])  # Tensor(1, 6)
             search_size = torch.where(success_flag, search_size_temp, search_size_temp * 2).to(self.device)
-        # END for
 
         tracked_pose = pose_compose(rot_cur, trans_cur)  # Tensor(4, 4)
         return tracked_pose

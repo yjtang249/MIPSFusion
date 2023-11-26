@@ -32,7 +32,7 @@ def fill_rays(slam, kfSet):
     for i in slam.dataset.frame_ids:
         if i == 0 or i % slam.config['mapping']['keyframe_every'] == 0:
             batch = slam.dataset.__getitem__(i)
-            kfSet.add_keyframe(batch, filter_depth=slam.config['mapping']['filter_depth'])
+            kfSet.add_keyframe(batch)
     print("Added kf_rays.")
 
 
@@ -47,8 +47,7 @@ if __name__ == '__main__':
     cfg = config.load_config(args.config)
 
     result_path = os.path.join(args.seq_result, "result")  # dir to save result of this running
-    if not os.path.exists(result_path):
-        os.makedirs(result_path)
+    os.makedirs(result_path, exist_ok=True)
 
     slam = MIPSFusion(cfg)
     kfSet = slam.kfSet

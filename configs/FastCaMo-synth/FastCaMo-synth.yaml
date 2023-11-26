@@ -1,4 +1,4 @@
-dataset: 'fastcamo_synth'
+dataset: "fastcamo_synth"
 
 data:
   downsample: 1
@@ -36,7 +36,6 @@ mapping:
   map_accum_step: 1
   pose_accum_step: 5
   map_wait_step: 0
-  filter_depth: False
   overlapping:
     n_rays_h: 24
     n_rays_w: 32
@@ -68,7 +67,6 @@ tracking:
     particle_size: 2000
     initial_scaling_factor: 0.02
     rescaling_factor: 0.5
-    pixel_num: 400  # number of pixels sampled for each particle
     n_rows: 16
     n_cols: 24
     beta: 0.9
@@ -82,16 +80,14 @@ tracking:
     map_num: 15
 
 grid:
-  enc: 'HashGrid'
+  enc: "HashGrid"
   tcnn_encoding: True
   hash_size: 19
-  voxel_color: 0.08
   voxel_sdf: 0.04
-  oneGrid: True
   use_bound_normalize: True
 
 pos:
-  enc: 'Frequency'
+  enc: "Frequency"
   n_bins: 8
 
 cam:
@@ -118,7 +114,6 @@ training:
   perturb: 1
   norm_factor: 1.
   trunc: 0.1
-  rot_rep: 'quat'
   rgb_missing: 0.0
   classification: True
 
@@ -126,7 +121,6 @@ mesh:
   resolution: 512
   vis: 25
   ckpt_freq: 100
-  voxel_eval: 0.05
   voxel_final: 0.03
   simply_joint: False
 

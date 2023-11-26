@@ -20,5 +20,4 @@ mesh:
   resolution: 512
   vis: 100
   ckpt_freq: 250
-  voxel_eval: 0.05
   voxel_final: 0.03

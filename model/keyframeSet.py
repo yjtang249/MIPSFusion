@@ -6,7 +6,7 @@ from helper_functions.sampling_helper import pixel_rc_to_indices, sample_pixels_
 from helper_functions.geometry_helper import extract_first_kf_pose, compute_surface_center
 
 
-class KeyFrameDatabase(object):
+class KeyframeSet():
     # @param num_kf: max keyframe number;
     def __init__(self, config, H, W, num_kf, device) -> None:
         self.config = config
@@ -73,18 +73,8 @@ class KeyFrameDatabase(object):
 
     # @brief: Sampling strategy for current keyframe rays
     # @param rays: Tensor(1, H * W, 7);
-    def sample_single_keyframe_rays(self, rays, option='uniform'):
-        if option == 'random':
-            idxs = random.sample(range(0, self.H * self.W), self.num_rays_to_save)
-        elif option == 'uniform':  # default
-            idxs = pixel_rc_to_indices(self.row_indices, self.col_indices, self.H, self.W)
-        elif option == 'filter_depth':
-            valid_depth_mask = (rays[..., -1] > 0.0) & (rays[..., -1] <= self.config["cam"]["depth_trunc"])
-            rays_valid = rays[valid_depth_mask, :]  # [n_valid, 7]
-            num_valid = len(rays_valid)
-            idxs = random.sample(range(0, num_valid), self.num_rays_to_save)
-        else:
-            raise NotImplementedError()
+    def sample_single_keyframe_rays(self, rays):
+        idxs = pixel_rc_to_indices(self.row_indices, self.col_indices, self.H, self.W)
         rays = rays[:, idxs]  # Tensor(1, self.num_rays_to_save, 7), device=cpu
         return rays
 
@@ -176,20 +166,11 @@ class KeyFrameDatabase(object):
 
 
     # @brief: Add keyframe rays to the keyframe database: (1) add frame_Id of keyframe; (2) store the rays
-    def add_keyframe(self, batch, filter_depth=False):
+    def add_keyframe(self, batch):
         rays = torch.cat([batch['direction'], batch['rgb'], batch['depth'][..., None]], dim=-1)
         rays = rays.reshape(1, -1, rays.shape[-1])  # Tensor(1, H * W, 7), device=cpu
-        if filter_depth:
-            rays = self.sample_single_keyframe_rays(rays, 'filter_depth')
-        else:  # default
-            rays = self.sample_single_keyframe_rays(rays)  # Tensor(1, num_rays_to_save, 7), device=cpu
-        
-        if not isinstance(batch['frame_id'], torch.Tensor):  # default: skip
-            batch['frame_id'] = torch.tensor([batch['frame_id']])
-
+        rays = self.sample_single_keyframe_rays(rays)  # Tensor(1, num_rays_to_save, 7), device=cpu
         self.attach_ids(batch['frame_id'])
-
-        # Store the rays
         self.rays[len(self.frame_ids)-1] = rays
 
 

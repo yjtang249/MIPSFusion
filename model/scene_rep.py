@@ -23,26 +23,21 @@ class JointEncoding(nn.Module):
     # @brief: get resolution for multi-resolution hash grid encoding
     def get_resolution(self):
         dim_max = (self.bounding_box[:, 1] - self.bounding_box[:, 0]).max()
-        if self.config['grid']['voxel_sdf'] > 10:
-            self.resolution_sdf = self.config['grid']['voxel_sdf']
+        if self.config["grid"]["voxel_sdf"] > 10:
+            self.resolution_sdf = self.config["grid"]["voxel_sdf"]
         else:
-            self.resolution_sdf = int(dim_max / self.config['grid']['voxel_sdf'])
-        
-        if self.config['grid']['voxel_color'] > 10:
-            self.resolution_color = self.config['grid']['voxel_color']
-        else:
-            self.resolution_color = int(dim_max / self.config['grid']['voxel_color'])
-        
-        print('SDF resolution:', self.resolution_sdf)
+            self.resolution_sdf = int(dim_max / self.config["grid"]["voxel_sdf"])
+
+        # print("SDF resolution:", self.resolution_sdf)
 
 
     # @brief: get encoding of this submap
     def get_encoding(self, config):
         # Coordinate encoding
-        self.embedpos_fn, self.input_ch_pos = get_encoder(config['pos']['enc'], n_bins=self.config['pos']['n_bins'])
+        self.embedpos_fn, self.input_ch_pos = get_encoder(config["pos"]["enc"], n_bins=self.config["pos"]["n_bins"])
 
         # Sparse parametric encoding (SDF)
-        self.embed_fn, self.input_ch = get_encoder(config['grid']['enc'], log2_hashmap_size=config['grid']['hash_size'], desired_resolution=256)
+        self.embed_fn, self.input_ch = get_encoder(config["grid"]["enc"], log2_hashmap_size=config["grid"]["hash_size"], desired_resolution=256)
 
 
     # @brief: get MLP
@@ -70,14 +65,14 @@ class JointEncoding(nn.Module):
         Returns:
             weights: [N_rays, N_samples]
         '''
-        weights = torch.sigmoid(sdf / args['training']['trunc']) * torch.sigmoid(-sdf / args['training']['trunc'])
+        weights = torch.sigmoid(sdf / args["training"]["trunc"]) * torch.sigmoid(-sdf / args["training"]["trunc"])
 
         signs = sdf[:, 1:] * sdf[:, :-1]
         mask = torch.where(signs < 0.0, torch.ones_like(signs), torch.zeros_like(signs))
         inds = torch.argmax(mask, axis=1)
         inds = inds[..., None]
         z_min = torch.gather(z_vals, 1, inds) # The first surface
-        mask = torch.where(z_vals < z_min + args['data']['sc_factor'] * args['training']['trunc'], torch.ones_like(z_vals), torch.zeros_like(z_vals))
+        mask = torch.where(z_vals < z_min + args["data"]["sc_factor"] * args["training"]["trunc"], torch.ones_like(z_vals), torch.zeros_like(z_vals))
 
         weights = weights * mask
         return weights / (torch.sum(weights, axis=-1, keepdims=True) + 1e-8)
@@ -140,7 +135,7 @@ class JointEncoding(nn.Module):
         inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])  # Tensor(n_rays * n_samples, 3)
 
         # normalize the input to [0, 1]
-        if self.config['grid']['tcnn_encoding']:
+        if self.config["grid"]["tcnn_encoding"]:
             if self.config["grid"]["use_bound_normalize"]:
                 inputs_flat = (inputs_flat - self.bounding_box[:, 0]) / (self.bounding_box[:, 1] - self.bounding_box[:, 0])
             else:
@@ -160,21 +155,21 @@ class JointEncoding(nn.Module):
 
         # Step 1: sampling depth value along each given ray
         if target_d is not None:  # default
-            z_samples = torch.linspace(-self.config['training']['range_d'], self.config['training']['range_d'], steps=self.config['training']['n_range_d']).to(target_d) 
+            z_samples = torch.linspace(-self.config["training"]["range_d"], self.config["training"]["range_d"], steps=self.config["training"]["n_range_d"]).to(target_d) 
             z_samples = z_samples[None, :].repeat(n_rays, 1) + target_d  # Tensor(n_rays, n_range_d), device=cuda:0
-            z_samples[target_d.squeeze() <= 0] = torch.linspace(self.config['cam']['near'], self.config['cam']['far'], steps=self.config['training']['n_range_d']).to(target_d)  # for those sampled pixels who have no gt depth values
+            z_samples[target_d.squeeze() <= 0] = torch.linspace(self.config["cam"]["near"], self.config["cam"]["far"], steps=self.config["training"]["n_range_d"]).to(target_d)  # for those sampled pixels who have no gt depth values
 
-            if self.config['training']['n_samples_d'] > 0:  # default (96)
-                z_vals = torch.linspace(self.config['cam']['near'], self.config['cam']['far'], self.config['training']['n_samples_d'])[None, :].repeat(n_rays, 1).to(rays_o)  # Tensor(n_rays, n_samples_d), device=cuda:0
+            if self.config["training"]["n_samples_d"] > 0:  # default (96)
+                z_vals = torch.linspace(self.config["cam"]["near"], self.config["cam"]["far"], self.config["training"]["n_samples_d"])[None, :].repeat(n_rays, 1).to(rays_o)  # Tensor(n_rays, n_samples_d), device=cuda:0
                 z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)  # Tensor(n_rays, n_range_d + n_samples_d), device=cuda:0
             else:
                 z_vals = z_samples
         else:
-            z_vals = torch.linspace(self.config['cam']['near'], self.config['cam']['far'], self.config['training']['n_samples']).to(rays_o)
+            z_vals = torch.linspace(self.config["cam"]["near"], self.config["cam"]["far"], self.config["training"]["n_samples"]).to(rays_o)
             z_vals = z_vals[None, :].repeat(n_rays, 1) # [n_rays, n_samples]
 
         # Step 2: perturb sampling depths
-        if self.config['training']['perturb'] > 0.:
+        if self.config["training"]["perturb"] > 0.:
             mids = .5 * (z_vals[..., 1:] + z_vals[..., :-1])
             upper = torch.cat([mids, z_vals[..., -1:]], -1)
             lower = torch.cat([z_vals[..., :1], mids], -1)
@@ -185,10 +180,10 @@ class JointEncoding(nn.Module):
         raw = self.run_network(pts)  # Tensor(N_rays, N_samples, 3), device=cuda:0
         rgb_map, disp_map, acc_map, weights, depth_map, depth_var = self.raw2outputs(raw, z_vals)
 
-        ret = {'rgb': rgb_map, 'depth': depth_map, 'disp_map': disp_map, 'acc_map': acc_map, 'depth_var': depth_var}
-        ret = {**ret, 'z_vals': z_vals}
+        ret = {"rgb": rgb_map, "depth": depth_map, "disp_map": disp_map, "acc_map": acc_map, "depth_var": depth_var}
+        ret = {**ret, "z_vals": z_vals}
 
-        ret['raw'] = raw
+        ret["raw"] = raw
         return ret
 
 
@@ -213,26 +208,22 @@ class JointEncoding(nn.Module):
             return rend_dict
         
         # Get depth and rgb weights for loss
-        valid_depth_mask = (target_d.squeeze() > 0.) * (target_d.squeeze() < self.config['cam']['depth_trunc'])
+        valid_depth_mask = (target_d.squeeze() > 0.) * (target_d.squeeze() < self.config["cam"]["depth_trunc"])
         rgb_weight = valid_depth_mask.clone().unsqueeze(-1)
-        rgb_weight[rgb_weight==0] = self.config['training']['rgb_missing']  # Tensor(N, 1), dtype=torch.bool
+        rgb_weight[rgb_weight==0] = self.config["training"]["rgb_missing"]  # Tensor(N, 1), dtype=torch.bool
 
         # Get render loss
         rgb_loss = compute_loss(rend_dict["rgb"] * rgb_weight, target_rgb * rgb_weight)
         psnr = mse2psnr(rgb_loss)
         depth_loss = compute_loss(rend_dict["depth"].squeeze()[valid_depth_mask], target_d.squeeze()[valid_depth_mask])
-
-        if 'rgb0' in rend_dict:  # default: skip
-            rgb_loss += compute_loss(rend_dict["rgb0"] * rgb_weight, target_rgb * rgb_weight)
-            depth_loss += compute_loss(rend_dict["depth0"][valid_depth_mask], target_d.squeeze()[valid_depth_mask])
         
         # Get sdf loss
-        z_vals = rend_dict['z_vals']  # [N_rand, N_samples + N_importance]
-        sdf = rend_dict['raw'][..., 3]  # [N_rand, N_samples + N_importance]
-        sdf_prob = rend_dict['raw'][..., 5:]  # [N_rand, N_samples + N_importance, class_num]
-        truncation = self.config['training']['trunc'] * self.config['data']['sc_factor']
+        z_vals = rend_dict["z_vals"]  # Tensor(N_rand, N_samples + N_importance)
+        sdf = rend_dict["raw"][..., 3]  # Tensor(N_rand, N_samples + N_importance)
+        sdf_prob = rend_dict["raw"][..., 5:]  # Tensor(N_rand, N_samples + N_importance, class_num)
+        truncation = self.config["training"]["trunc"] * self.config["data"]["sc_factor"]
 
-        fs_loss, sdf_loss = get_sdf_loss(z_vals, target_d, sdf, sdf_prob, truncation, 5, EMD_w, 'l2')
+        fs_loss, sdf_loss = get_sdf_loss(z_vals, target_d, sdf, sdf_prob, truncation, 5, EMD_w, "l2")
 
         ret = {
             "rgb": rend_dict["rgb"],

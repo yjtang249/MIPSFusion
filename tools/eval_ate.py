@@ -200,8 +200,10 @@ def evaluate_ate(first_list, second_list, plot="", _args=""):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ATE = numpy.sqrt( numpy.dot(trans_error, trans_error) / len(trans_error) )
+        ATE = round(ATE, 4)
         png_name = os.path.basename(args.plot)
-        ax.set_title(f'len:{len(trans_error)} ATE RMSE:{ATE} {png_name[:-3]}')
+        # ax.set_title(f'len:{len(trans_error)-1} ATE RMSE:{ATE} {png_name[:-3]}')
+        ax.set_title(f'len:{len(trans_error)-1} ATE RMSE:{ATE}')
         plot_traj(ax, first_stamps, first_xyz_full.transpose().A, '-', "black", "ground truth")
         plot_traj(ax, second_stamps, second_xyz_full_aligned.transpose().A, '-', "blue", "estimated")
 
@@ -265,7 +267,7 @@ def convert_poses(c2w_list, N, scale, gt=True):
 # @param poses_gt: dict of Tensor(4, 4);
 # @param poses_est: dict of Tensor(4, 4);
 # @param scale: default: 1
-def pose_evaluation(poses_gt, poses_est, scale, path_to_save, i, img='pose', name='output.txt'):
+def pose_evaluation(poses_gt, poses_est, scale, path_to_save, i, img='pose'):
     N = len(poses_est)  # number of tracked pose
     poses_gt, mask = convert_poses(poses_gt, N, scale)
     poses_est, _ = convert_poses(poses_est, N, scale)
@@ -274,5 +276,4 @@ def pose_evaluation(poses_gt, poses_est, scale, path_to_save, i, img='pose', nam
 
     results = evaluate(poses_gt, poses_est, plot=plt_path)
     results['Name'] = i
-    print(results, file=open(os.path.join(path_to_save, name), "a"))
     return results

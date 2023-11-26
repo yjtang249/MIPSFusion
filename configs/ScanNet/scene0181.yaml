@@ -3,9 +3,6 @@ mapping:
   bound: [ [ -0.3, 8.2 ],[ -0.3, 7.3 ],[ -0.3, 2.8 ] ]
   marching_cubes_bound: [ [ -0.3, 8.2 ],[ -0.3, 7.3 ],[ -0.3, 2.8 ] ]
 
-grid:
-  hash_size: 16
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0181_00/output
   trainskip: 1
@@ -28,12 +25,3 @@ cam:
   crop_edge: 10
   near: 0
   far: 7.
-
-training:
-  rgb_weight: 1.
-  depth_weight: 0.
-  sdf_weight: 1000
-  fs_weight: 10
-  n_samples_d: 50  # number of depth value sampled uniformly along a ray
-  range_d: 0.20
-  n_range_d: 25  # number of depth value sampled around surface along a ray

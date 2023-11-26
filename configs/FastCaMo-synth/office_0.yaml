@@ -4,12 +4,7 @@ mapping:
   bound: [[-1.6, 11.7], [-1.9, 4.7], [-1.5, 2.1]]
   marching_cubes_bound: [[-1.6, 11.7], [-1.9, 4.7], [-1.5, 2.1]]
 
-grid:
-  hash_size: 16
-  
-
 data:
-  #  datadir: ./data/scannet/scene0000_00  # input dir of this sequence
   datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/office_0
   trainskip: 1
   output: output/FastCaMo-synth/office_0

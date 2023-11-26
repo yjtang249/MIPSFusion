@@ -1,7 +1,5 @@
-import os
 import numpy as np
 import torch
-import open3d as o3d
 
 from helper_functions.geometry_helper import get_frame_surface_bbox, pts_in_bbox, project_to_pixel
 from helper_functions.sampling_helper import sample_pixels_uniformly
@@ -115,14 +113,6 @@ class Manager():
         dists = torch.norm(localMLP_center - kf_center[None, ...], dim=-1)  # Tensor(used_localMLP_num, )
         return dists
 
-    # # @brief: giving a keyframe, compute the center distance between it and each related keyframe, then sort all related keyframe based on center distance;
-    # # @param kf_center: the center of given keyframe in World Coordinate System, Tensor(3, );
-    # # @param kf_pose_world: world pose of given keyframes, Tensor(n, 4, 4)
-    # def sort_center_dist_kf(self, kf_center, kf_pose_world):
-    #     kf_origins = kf_pose_world[:, :3, 3]  # Tensor(n, 3)
-    #     dists = torch.norm(kf_origins - kf_center[None, ...], dim=-1)  # Tensor(n, )
-    #     return dists
-
 
     # @brief: find top K nearest localMLP w.r.t. given keyframe;
     # @param frustum_xyz_center: Tensor(3, );
@@ -136,6 +126,7 @@ class Manager():
             dists = self.sort_center_dist(frustum_xyz_center, used_localMLP_num)
             near_localMLPs = torch.argsort(dists, 0)
             return near_localMLPs[:k]
+
 
     # @brief: find top K nearest localMLP(excluding given localMLP) w.r.t. given keyframe;
     # @param given_localMLP_Id: Id of localMLP which should be excluded, Tensor(, );
@@ -250,97 +241,6 @@ class Manager():
         valid_pts_num = torch.count_nonzero(depth_mask)
         pts_in_num = torch.count_nonzero(mask)
         containing_ratio = pts_in_num / valid_pts_num
-        return containing_ratio
-
-
-    # @param depth_img: Tensor(H, W);
-    # @param rays_d: Tensor(H, W ,3);
-    # @param pose_world: Tensor(4, 4);
-    # @param localMLP_Id: localMLP_Id of selected localMLP, Tensor(1, );
-    def compute_containing_ratio_test(self, depth_img, rays_d, pose_world, localMLP_Id, extra_pts, pts_mask, rays_h=150, rays_w=200, localMLP_center=None, localMLP_len=None):
-        pixel_num = rays_h * rays_w
-
-        # Step 1: sample pixels and points
-        # 1.1: sample pixels
-        indice_h, indice_w = sample_pixels_uniformly(self.dataset.H, self.dataset.W, rays_h, rays_w)
-        target_d = depth_img[indice_h, indice_w]  # Tensor(pixel_num, )
-        rays_d_cam = rays_d[indice_h, indice_w]  # Tensor(pixel_num, 3)
-
-        rays_o = pose_world[:3, -1].repeat(pixel_num, 1)  # apply translation(camera --> world), Tensor(pixel_num, 3)
-        rays_d = torch.sum(rays_d_cam[..., None, :] * pose_world[None, :3, :3], -1)  # apply rotation(camera --> world): rotate direction of sampled rays, Tensor(pixel_num, 3)
-
-        # # 1.2: sampling depth values
-        # t_scales = torch.linspace(0, 1, depth_num)[None, ...].repeat(pixel_num, 1)  # Tensor(pixel_num, depth_num)
-        # t_depth = target_d[..., None] * t_scales  # Tensor(pixel_num, depth_num)
-
-        # 1.3: get sampled 3D points
-        pts = rays_o[..., None, :] + rays_d[..., None, :] * target_d[..., None, None]  # Tensor(pixel_num, depth_num, 3)
-
-        # Step 2: judge whether each points in bbox
-        center_len = self.kfSet.localMLP_info[localMLP_Id][1:]  # Tensor(6, )
-
-        if localMLP_center is None:
-            localMLP_center = center_len[:3]
-
-        if localMLP_len is None:
-            localMLP_len = center_len[3:]
-            localMLP_len = torch.where(localMLP_len < self.min_cr_localMLP_len, self.min_cr_localMLP_len, localMLP_len)
-
-        xyz_min = localMLP_center - 0.5 * localMLP_len  # Tensor(3, )
-        xyz_max = localMLP_center + 0.5 * localMLP_len  # Tensor(3, )
-        mask = pts_in_bbox(pts.reshape((-1, 3)), xyz_min[None, ...], xyz_max[None, ...])  # Tensor(pixel_num * depth_num, 1)
-
-        # Step 3: compute containing ratio of top localMLP
-        depth_mask = torch.where(target_d[..., None] > 0., torch.ones_like(target_d[..., None]), torch.zeros_like(target_d[..., None]))  # Tensor(pixel_num, depth_num)
-        mask = mask.to(depth_mask) * depth_mask  # Tensor(pixel_num * depth_num)
-
-        valid_pts_num = torch.count_nonzero(depth_mask)
-        pts_in_num = torch.count_nonzero(mask)
-        containing_ratio = pts_in_num / valid_pts_num
-
-        # TEST: draw bbox, and pts (pts in bbox are red, outers are blue)
-        # # Step 1:
-        # vis = o3d.visualization.Visualizer()
-        # vis.create_window(window_name="mesh_bbox", height=480, width=640)
-        # vis.get_render_option().point_size = 3
-        # # vis.get_render_option().line_width = 30.
-        # vis.get_render_option().mesh_show_back_face = True
-        # ctr = vis.get_view_control()
-        # ctr.set_constant_z_near(0.)
-        # ctr.set_constant_z_far(1000)
-
-        # Step 2: create bbox and pointcloud
-        bbox = o3d.geometry.AxisAlignedBoundingBox(xyz_min[..., None].numpy().astype(np.float64),
-                                                   xyz_max[..., None].numpy().astype(np.float64))
-        bbox.color = np.array([0., 0., 0.])
-        pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts.reshape((-1, 3)).numpy()))
-        pc.paint_uniform_color( np.array([0., 0., 1.])[..., None].astype(np.float64) )
-
-        pc_colors = np.array(pc.colors)
-        in_mask = mask.squeeze(-1).numpy().astype(np.bool)
-        pc_colors[in_mask] = np.array([1., 0., 0.])
-        pc.colors = o3d.utility.Vector3dVector(pc_colors)
-
-        pc2 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(extra_pts.reshape((-1, 3)).numpy()))
-        pc2.paint_uniform_color(np.array([0., 0., 1.])[..., None].astype(np.float64))
-        pc2_colors = np.array(pc2.colors)
-        in_mask2 = pts_mask.squeeze(-1).numpy().astype(np.bool)
-        pc2_colors[in_mask2] = np.array([0., 1., 0.])
-        pc2.colors = o3d.utility.Vector3dVector(pc2_colors)
-
-
-        line_set = o3d.geometry.LineSet.create_from_axis_aligned_bounding_box(bbox)
-        o3d.io.write_line_set("bbox.ply", line_set)
-        o3d.io.write_point_cloud("point_cloud.ply", pc)
-        o3d.io.write_point_cloud("point_cloud2.ply", pc2)
-
-
-        # vis.add_geometry(bbox)
-        # vis.add_geometry(pc)
-        #
-        # vis.run()
-        # END TEST
-
         return containing_ratio
 
 
@@ -562,10 +462,6 @@ class Manager():
                 switch_flag, target_d, rays_d, pts_mask, top_kf_Ids, top_kf_mask = self.find_overlapping_region(batch, pose_world, active_localMLP_Id, mo_localMLP_Id,
                                                                           self.slam.kf_c2w.detach().cpu(), self.slam.est_c2w_data.detach().cpu(), self.slam.keyframe_ref.detach(),
                                                                           self.config["mapping"]["overlapping"]["n_rays_h"], self.config["mapping"]["overlapping"]["n_rays_w"])
-
-                # # TEST
-                # cr_mo_test = self.compute_containing_ratio_test(batch["depth"].squeeze(0), batch["direction"].squeeze(0), pose_world, mo_localMLP_Id, pts, pts_mask)
-                # # END TEST
 
                 if switch_flag:  # case 5.1: active submap switch to the previous localMLP
                     flag = self.send_msg1(keyframe_Id, frustum_xyz_center, frustum_xyz_len, active_localMLP_Id, mo_localMLP_Id, pose_world, True)

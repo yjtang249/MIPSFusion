@@ -4,9 +4,6 @@ mapping:
   bound: [[-9.3, 2.1], [-6.1, 3.9], [-2.5, 2.1]]
   marching_cubes_bound: [[-9.3, 2.1], [-6.1, 3.9], [-2.5, 2.1]]
 
-grid:
-  hash_size: 16
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/NS_VF/IndoorLarge/lab_lp_f
   trainskip: 1
@@ -18,5 +15,4 @@ mesh:
   resolution: 512
   vis: 100
   ckpt_freq: 250
-  voxel_eval: 0.05
   voxel_final: 0.03

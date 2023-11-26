@@ -72,9 +72,9 @@ class Logger():
     # @brief: Load the model parameters and the estimated pose
     def load_ckpt(self, load_path):
         dict = torch.load(load_path)
-        # model.load_state_dict(dict['model'])
-        # self.est_c2w_data = dict['pose']
-        # self.est_c2w_data_rel = dict['pose_rel']
+        # model.load_state_dict(dict["model"])
+        # self.est_c2w_data = dict["pose"]
+        # self.est_c2w_data_rel = dict["pose_rel"]
         return dict
 
 
@@ -84,8 +84,8 @@ class Logger():
     def convert_relative_pose(self, idx):
         poses = []
         for i in range(idx + 1):
-            if i % self.config['mapping']['keyframe_every'] == 0:  # case 1: for keyframes
-                kf_id = i // self.config['mapping']['keyframe_every']
+            if i % self.config["mapping"]["keyframe_every"] == 0:  # case 1: for keyframes
+                kf_id = i // self.config["mapping"]["keyframe_every"]
                 kf_ref = self.kf_ref[kf_id]
                 if kf_ref >= 0:  # case 1.1: for ordinary keyframes
                     kf_pose_local = self.est_c2w_data[i]
@@ -95,8 +95,8 @@ class Logger():
                     kf_pose_local = self.est_c2w_data[i]
                 poses.append(kf_pose_local)
             else:  # case 2: for non-keyframes
-                kf_id = i // self.config['mapping']['keyframe_every']
-                kf_frame_id = kf_id * self.config['mapping']['keyframe_every']
+                kf_id = i // self.config["mapping"]["keyframe_every"]
+                kf_frame_id = kf_id * self.config["mapping"]["keyframe_every"]
                 # c2w_key = poses[kf_frame_id]  # pose of ref keyframe (in Local Coordinate System)
                 c2w_key = self.est_c2w_data[kf_frame_id]  # pose of ref keyframe (in Local Coordinate System)
                 delta = self.est_c2w_data_rel[i]  # relative pose of current frame w.r.t. ref keyframe
@@ -146,9 +146,8 @@ class Logger():
 
 
     def extract_a_mesh(self, frame_id, localMLP_Id, model):
-        mesh_save_dir = os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "%d" % frame_id)
-        if not os.path.exists(mesh_save_dir):
-            os.makedirs(mesh_save_dir)
+        mesh_save_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "%d" % frame_id)
+        os.makedirs(mesh_save_dir, exist_ok=True)
         mesh_save_path = os.path.join(mesh_save_dir, "localMLP_%d.ply" % int(localMLP_Id))
         self.mesher.extract_single_mesh(model, localMLP_Id, save_path=mesh_save_path)
 
@@ -172,9 +171,8 @@ class Logger():
 
 
     def extract_all_mesh(self, frame_id, model_list, first_kf_poses, voxel_size=0.05):
-        mesh_save_dir = os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "%d" % frame_id)
-        if not os.path.exists(mesh_save_dir):
-            os.makedirs(mesh_save_dir)
+        mesh_save_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "%d" % frame_id)
+        os.makedirs(mesh_save_dir, exist_ok=True)
         model_num = len(model_list)
 
         for i in range(model_num):
@@ -222,8 +220,7 @@ class Logger():
     # @param gt_depth: Tensor(H, W).
     def img_render_save(self, model, pose_local, gt_color, gt_depth, i):
         save_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "keyframe")
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, "frame_%d.png" % i)
 
         with torch.no_grad():
@@ -273,19 +270,21 @@ class Logger():
         else:
             ckpt_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "ckpt_final")
 
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
+        os.makedirs(ckpt_dir, exist_ok=True)
 
         model_weights_path = os.path.join(ckpt_dir, "model_%d.pth" % int(active_localMLP_Id.cpu().numpy()))
         self.save_state_dict(model, model_weights_path)
 
 
     # @brief: save checkpoint until frame_id, called by InactiveMap process
-    def save_ckpt_inactive(self, frame_id, model_list, active_localMLP_Id):
-        ckpt_dir = os.path.join(self.config['data']['output'], self.config['data']['exp_name'], "ckpt_%d" % frame_id)
+    def save_ckpt_inactive(self, frame_id, model_list, active_localMLP_Id, final=False):
+        if final == False:
+            ckpt_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "ckpt_%d" % frame_id)
+        else:
+            ckpt_dir = os.path.join(self.config["data"]["output"], self.config["data"]["exp_name"], "ckpt_final")
+
         time.sleep(0.5)
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
+        os.makedirs(ckpt_dir, exist_ok=True)
 
         # Step 1: save each inactive localMLP's parameters
         for i in range(len(model_list)):

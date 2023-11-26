@@ -4,10 +4,6 @@ mapping:
   bound: [ [-0.1, 8.6], [-0.1, 8.9], [-0.3, 3.3] ]
   marching_cubes_bound: [ [-0.1, 8.6], [-0.1, 8.9], [-0.3, 3.3] ]
 
-grid:
-  hash_size: 16
-  use_bound_normalize: True
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/ScanNet/all_sens/scans/scene0000_00/output
   trainskip: 1

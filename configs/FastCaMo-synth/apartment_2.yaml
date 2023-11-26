@@ -3,24 +3,6 @@ inherit_from: configs/FastCaMo-synth/FastCaMo-synth.yaml
 mapping:
   bound: [[-0.6, 2.95], [0.5, 7.05], [-1.15, 3.05]]
   marching_cubes_bound: [[-0.6, 2.95], [0.5, 7.05], [-1.15, 3.05]]
-  sample: 1800
-  pixels_cur: 800
-  first_mesh: True
-  iters: 15
-  lr_embed: 0.01
-  lr_decoder: 0.01
-  lr_rot: 0.001  # default: 0.001
-  lr_trans: 0.001  # default: 0.001
-  keyframe_every: 15  # insert keyframe at constant speed
-  min_containing_ratio: 0.75
-  min_containing_ratio_mo: 0.8
-  min_containing_ratio_back: 0.7
-  min_cr_localMLP_len: [ 5., 5., 5. ]
-  localMLP_max_len: [ 6., 6., 6. ]
-  localMLP_max_len_back: [ 7., 7., 7. ]
-
-grid:
-  hash_size: 16
 
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/apartment_2

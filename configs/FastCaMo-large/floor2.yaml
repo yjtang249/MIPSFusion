@@ -4,18 +4,9 @@ mapping:
   bound: [[-9.0, 2.5], [-1.2, 14.8], [-1.8, 11.4]]
   marching_cubes_bound: [[-9.0, 2.5], [-1.2, 14.8], [-1.8, 11.4]]
   localMLP_num: 20
-  iters: 15
-  lr_embed: 0.01  # default: 0.01
-  lr_decoder: 0.01  # default: 0.01
-  lr_rot: 0.001  # default: 0.001
-  lr_trans: 0.001  # default: 0.001
-  keyframe_every: 15  # insert keyframe at constant speed
   min_containing_ratio: 0.75
   min_containing_ratio_mo: 0.8
   min_containing_ratio_back: 0.9
-  min_cr_localMLP_len: [ 5., 5., 4. ]
-  localMLP_max_len: [ 7., 7., 4. ]
-  localMLP_max_len_back: [ 7., 7., 4. ]
 
 grid:
   hash_size: 16

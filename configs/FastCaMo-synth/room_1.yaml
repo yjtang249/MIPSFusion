@@ -4,9 +4,6 @@ mapping:
   bound: [[-2.3, 1.45], [-0.85, 5.25], [-2.55, 3.05]]
   marching_cubes_bound: [[-2.3, 1.45], [-0.85, 5.25], [-2.55, 3.05]]
 
-grid:
-  hash_size: 16
-
 data:
   datadir: /media/javens/TYJ_lab1T/Dataset/FastCaMo-Synth/raw/room_1
   trainskip: 1

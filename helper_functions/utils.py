@@ -37,7 +37,7 @@ def get_masks(z_vals, target_d, truncation):
     back_mask = torch.where(z_vals > (target_d + truncation), torch.ones_like(z_vals), torch.zeros_like(z_vals))
     # valid mask
     depth_mask = torch.where(target_d > 0.0, torch.ones_like(target_d), torch.zeros_like(target_d))
-    # Valid sdf regionn
+    # Valid sdf region
     sdf_mask = (1.0 - front_mask) * (1.0 - back_mask) * depth_mask
 
     num_fs_samples = torch.count_nonzero(front_mask)
