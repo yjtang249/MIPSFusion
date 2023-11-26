@@ -51,6 +51,10 @@ python vis/render_mesh.py --config configs/FastCaMo-synth/apartment_2.yaml --seq
 &#x27A1; The reconstructed mesh can be found at `{result_path}/result`. For example: `output/FastCaMo-synth/apartment_2/0/result`.
 
 
+## Dataset
+FastCaMo-synth dataset (proposed in [ROSEFusion](https://github.com/jzhzhang/ROSEFusion)) can be found [here](https://1drv.ms/u/s!AvuKnc9E9hmqhgljQdXKJECStZ-W?e=wWD2Tz), and our FastCaMo-large dataset can be found [here]().
+
+
 ## Acknowledgement
 Some codes are modified from [Neural RGB-D Surface Reconstruction](https://dazinovic.github.io/neural-rgbd-surface-reconstruction/), [NICE-SLAM](https://github.com/cvg/nice-slam), [Co-SLAM](https://github.com/HengyiWang/Co-SLAM/tree/main), [pypose](https://github.com/pypose/pypose), and [tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn). Thanks to all of the above.
 

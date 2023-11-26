@@ -5,7 +5,7 @@ mapping:
   marching_cubes_bound: [[-6.7, 2.75], [-4.1, 6.0], [-1.55, 14.1]]
 
 data:
-  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/stairs2
+  datadir: /media/javens/extra_space/Dataset/IndoorLarge_VF_NS/stairs1
   trainskip: 1
   output: output/FastCaMo-large/stairs1
   exp_name: "0"
