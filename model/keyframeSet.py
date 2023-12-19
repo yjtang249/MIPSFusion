@@ -160,8 +160,9 @@ class KeyframeSet():
     # @brief: insert the frame_Id (of a keyframe) to list
     def attach_ids(self, frame_ids):
         if self.frame_ids is None:
-            self.frame_ids = frame_ids
+            self.frame_ids = torch.ones((1, )) * frame_ids
         else:
+            frame_ids = torch.ones((1, )) * frame_ids
             self.frame_ids = torch.cat([self.frame_ids, frame_ids], dim=0)
 
 
